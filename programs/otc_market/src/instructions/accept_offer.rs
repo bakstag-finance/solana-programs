@@ -86,7 +86,7 @@ pub struct AcceptOffer<'info> {
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program
     )]
-    // NOTICE: required for src spl token - to_ata
+    /// NOTICE: required for src spl token - to_ata
     pub src_buyer_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
 
     #[account(
@@ -99,7 +99,7 @@ pub struct AcceptOffer<'info> {
     pub src_escrow_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
 
     #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
-    /// NOTICE: required for src sol token - from | required for src spl token - from_ata
+    /// NOTICE: required for src sol token - from | required for src spl token - authority
     pub escrow: Option<Account<'info, Escrow>>,
 
     #[account(
@@ -138,7 +138,7 @@ impl AcceptOffer<'_> {
             dst_buyer_address: ctx.accounts.buyer.key().to_bytes(),
         });
 
-        // transfer dst tokens
+        // send dst tokens
         {
             let dst_buyer_ata = ctx.accounts.dst_buyer_ata.as_deref();
 
@@ -179,7 +179,7 @@ impl AcceptOffer<'_> {
                 amount_ld = OtcConfig::sd2ld(params.src_amount_sd, decimal_conversion_rate);
             }
 
-            // send src token to buyer
+            // send src tokens to the buyer
             OtcConfig::transfer(
                 escrow.as_ref(),
                 amount_ld,

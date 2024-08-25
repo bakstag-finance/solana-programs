@@ -2,7 +2,7 @@ use crate::*;
 use anchor_spl::token_interface::{ Mint, TokenInterface };
 
 #[derive(Accounts)]
-#[instruction(src_seller_address: [u8; 32], offer_id: [u8; 32])]
+#[instruction(_src_seller_address: [u8; 32], offer_id: [u8; 32])]
 pub struct QuoteCancelOfferOrder<'info> {
     #[account(mut)]
     pub seller: Signer<'info>,
@@ -31,7 +31,7 @@ impl QuoteCancelOfferOrder<'_> {
     pub fn apply(
         _ctx: &mut Context<QuoteCancelOfferOrder>,
         _src_seller_address: &[u8; 32],
-        _params: &AcceptOfferParams
+        _offer_id: &[u8; 32]
     ) -> Result<()> {
         Ok(())
     }

@@ -72,8 +72,12 @@ pub mod otc_market {
     pub fn quote_cancel_offer(
         mut ctx: Context<QuoteCancelOfferOrder>,
         src_seller_address: [u8; 32],
-        params: AcceptOfferParams
+        offer_id: [u8; 32]
     ) -> Result<()> {
-        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &params)
+        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &offer_id)
+    }
+
+    pub fn cancel_offer(mut ctx: Context<CancelOffer>, offer_id: [u8; 32]) -> Result<()> {
+        CancelOffer::apply(&mut ctx, &offer_id)
     }
 }
