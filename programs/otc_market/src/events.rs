@@ -20,3 +20,8 @@ pub struct OfferAccepted {
     pub src_buyer_address: [u8; 32],
     pub dst_buyer_address: [u8; 32],
 }
+
+#[event]
+pub struct OfferCanceled {
+    pub offer_id: [u8; 32],
+}

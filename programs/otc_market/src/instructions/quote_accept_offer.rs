@@ -2,12 +2,17 @@ use crate::*;
 use anchor_spl::token_interface::{ Mint, TokenInterface };
 
 #[derive(Accounts)]
-#[instruction(dst_buyer: [u8; 32], params: AcceptOfferParams)]
+#[instruction(_dst_buyer_address: [u8; 32], params: AcceptOfferParams)]
 pub struct QuoteAcceptOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
 
-    #[account(seeds = [&params.offer_id], bump = offer.bump)]
+    #[account(
+        seeds = [&params.offer_id], 
+        bump = offer.bump,
+        constraint = offer.dst_eid == OtcConfig::EID @ OtcError::InvalidEid,
+        constraint = offer.src_amount_sd >= params.src_amount_sd @ OtcError::ExcessiveAmount
+    )]
     pub offer: Account<'info, Offer>,
 
     #[account(
@@ -27,12 +32,6 @@ impl QuoteAcceptOffer<'_> {
         _dst_buyer_address: &[u8; 32],
         params: &AcceptOfferParams
     ) -> Result<AcceptOfferReceipt> {
-        require!(ctx.accounts.offer.dst_eid == OtcConfig::EID, OtcError::InvalidEid);
-        require!(
-            ctx.accounts.offer.src_amount_sd >= params.src_amount_sd,
-            OtcError::ExcessiveAmount
-        );
-
         Ok(
             OtcConfig::to_dst_amount(
                 params.src_amount_sd,

@@ -10,7 +10,7 @@ use events::*;
 use instructions::*;
 use state::*;
 
-declare_id!("CZQpH5QzK5CLY6LDBar1NWpmXgs7FwhVLaRREESvCrhj");
+declare_id!("3HbQENo1YoAPd4FDuNJECRWwbbhfbpy2Hjpa59JwH7bu");
 
 #[program]
 pub mod otc_market {
@@ -20,21 +20,7 @@ pub mod otc_market {
         Initialize::apply(&mut ctx, &params)
     }
 
-    pub fn create_offer(
-        mut ctx: Context<CreateOffer>,
-        params: CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
-        CreateOffer::apply(&mut ctx, &params)
-    }
-
-    pub fn quote_create_offer(
-        mut ctx: Context<QuoteCreateOffer>,
-        src_seller_address: [u8; 32],
-        params: CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
-        QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params)
-    }
-
+    /// see [otc]
     pub fn hash_offer(
         mut _ctx: Context<HashOffer>,
         src_seller_address: [u8; 32],
@@ -54,6 +40,24 @@ pub mod otc_market {
         )
     }
 
+    /// see [quote_create_offer]
+    pub fn quote_create_offer(
+        mut ctx: Context<QuoteCreateOffer>,
+        src_seller_address: [u8; 32],
+        params: CreateOfferParams
+    ) -> Result<CreateOfferReceipt> {
+        QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params)
+    }
+
+    /// see [create_offer]
+    pub fn create_offer(
+        mut ctx: Context<CreateOffer>,
+        params: CreateOfferParams
+    ) -> Result<CreateOfferReceipt> {
+        CreateOffer::apply(&mut ctx, &params)
+    }
+
+    /// see [quote_accept_offer]
     pub fn quote_accept_offer(
         mut ctx: Context<QuoteAcceptOffer>,
         dst_buyer_address: [u8; 32],
@@ -62,10 +66,25 @@ pub mod otc_market {
         QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params)
     }
 
+    /// see [accept_offer]
     pub fn accept_offer(
         mut ctx: Context<AcceptOffer>,
         params: AcceptOfferParams
     ) -> Result<AcceptOfferReceipt> {
         AcceptOffer::apply(&mut ctx, &params)
+    }
+
+    /// see [quote_cancel_offer]
+    pub fn quote_cancel_offer(
+        mut ctx: Context<QuoteCancelOfferOrder>,
+        src_seller_address: [u8; 32],
+        offer_id: [u8; 32]
+    ) -> Result<()> {
+        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &offer_id)
+    }
+
+    /// see [cancel_offer]
+    pub fn cancel_offer(mut ctx: Context<CancelOffer>, offer_id: [u8; 32]) -> Result<()> {
+        CancelOffer::apply(&mut ctx, &offer_id)
     }
 }
