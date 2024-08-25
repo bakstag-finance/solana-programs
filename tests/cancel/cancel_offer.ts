@@ -61,16 +61,7 @@ describe("CancelOffer", () => {
   beforeEach(async () => {
     // create offers
 
-    const splOffer = await createSplOffer(program, connection, wallet.payer, accounts);
     const nativeOffer = await createNativeOffer(program, connection, wallet.payer, accounts);
-
-    offers.push({
-      type: 'monochain',
-      srcToken: 'spl',
-      dstToken: 'spl',
-      id: splOffer.id as unknown as number[],
-      publicKey: splOffer.account
-    })
 
     offers.push({
       type: 'monochain',
@@ -81,6 +72,32 @@ describe("CancelOffer", () => {
     })
   });
 
+  afterEach(async () => {
+    // cancel offers
+
+    for (const offer of offers.filter(
+      (offer) => offer.srcToken === 'sol' && offer.type === 'monochain'
+    )) {
+      await program.methods
+        .cancelOffer(offer.id)
+        .accounts({
+          seller: accounts.srcSeller.publicKey,
+          otcConfig: accounts.otcConfig,
+          offer: offer.publicKey,
+
+          escrow: accounts.escrow,
+
+          srcSellerAta: null,
+          srcEscrowAta: null,
+          srcTokenMint: null,
+        })
+        .signers([accounts.srcSeller])
+        .rpc();
+    }
+
+    offers = [];
+  })
+
   it("should revert on unexisting offer", async () => {
     const { ata: unexistingOffer } = await createMintAndAta(
       connection,
@@ -89,16 +106,45 @@ describe("CancelOffer", () => {
       6
     );
 
+
+    try {
+      await program.methods
+        .cancelOffer(Array.from(unexistingOffer.toBytes()))
+        .accounts({
+          seller: accounts.srcSeller.publicKey,
+          otcConfig: accounts.otcConfig,
+          offer: unexistingOffer,
+
+          escrow: accounts.escrow,
+
+          srcSellerAta: null,
+          srcEscrowAta: null,
+          srcTokenMint: null,
+        })
+        .signers([accounts.srcSeller])
+        .rpc();
+
+      expect.fail("should revert");
+    } catch (error: any) {
+      if (error instanceof AssertionError) {
+        throw error
+      }
+    }
+  })
+
+  it("should revert on invalid seller", async () => {
     for (const offer of offers.filter(
       (offer) => offer.srcToken === 'sol' && offer.type === 'monochain'
     )) {
       try {
+        const invalidSeller = Keypair.generate();
+
         await program.methods
-          .cancelOffer(Array.from(unexistingOffer.toBytes()))
+          .cancelOffer(offer.id)
           .accounts({
-            seller: accounts.srcSeller.publicKey,
+            seller: invalidSeller.publicKey,
             otcConfig: accounts.otcConfig,
-            offer: unexistingOffer,
+            offer: offer.publicKey,
 
             escrow: accounts.escrow,
 
@@ -106,14 +152,15 @@ describe("CancelOffer", () => {
             srcEscrowAta: null,
             srcTokenMint: null,
           })
-          .signers([accounts.srcSeller])
+          .signers([invalidSeller])
           .rpc();
 
         expect.fail("should revert");
       } catch (error: any) {
-        if (error instanceof AssertionError) {
-          throw error
-        }
+        expect(error).to.be.instanceOf(AnchorError);
+        expect((error as AnchorError).error.errorCode.code).to.equal(
+          "OnlySeller"
+        );
       }
     }
   })
