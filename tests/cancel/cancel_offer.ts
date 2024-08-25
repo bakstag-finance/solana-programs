@@ -8,7 +8,8 @@ import { OtcMarket } from "../../target/types/otc_market";
 import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { createSplOffer, createNativeOffer } from "../helpers/create_offer";
 import { Accounts, generateAccounts, topUp } from "../helpers/helper";
-import { createMintAndAta } from "../helpers/spl";
+import { createMintAndAta, getBalance } from "../helpers/spl";
+import { CREATE_OFFER_AMOUNTS } from "../helpers/constants";
 
 type Offer = {
   type: 'monochain' | 'crosschain',
@@ -62,6 +63,7 @@ describe("CancelOffer", () => {
     // create offers
 
     const nativeOffer = await createNativeOffer(program, connection, wallet.payer, accounts);
+    const splOffer = await createSplOffer(program, connection, wallet.payer, accounts);
 
     offers.push({
       type: 'monochain',
@@ -69,6 +71,12 @@ describe("CancelOffer", () => {
       dstToken: 'sol',
       id: nativeOffer.id as unknown as number[],
       publicKey: nativeOffer.account
+    }, {
+      type: 'monochain',
+      srcToken: 'spl',
+      dstToken: 'spl',
+      id: splOffer.id as unknown as number[],
+      publicKey: splOffer.account
     })
   });
 
@@ -78,21 +86,57 @@ describe("CancelOffer", () => {
     for (const offer of offers.filter(
       (offer) => offer.srcToken === 'sol' && offer.type === 'monochain'
     )) {
-      await program.methods
-        .cancelOffer(offer.id)
-        .accounts({
-          seller: accounts.srcSeller.publicKey,
-          otcConfig: accounts.otcConfig,
-          offer: offer.publicKey,
+      try {
+        await program.methods
+          .cancelOffer(offer.id)
+          .accounts({
+            seller: accounts.srcSeller.publicKey,
+            otcConfig: accounts.otcConfig,
+            offer: offer.publicKey,
 
-          escrow: accounts.escrow,
+            escrow: accounts.escrow,
 
-          srcSellerAta: null,
-          srcEscrowAta: null,
-          srcTokenMint: null,
-        })
-        .signers([accounts.srcSeller])
-        .rpc();
+            srcSellerAta: null,
+            srcEscrowAta: null,
+            srcTokenMint: null,
+          })
+          .signers([accounts.srcSeller])
+          .rpc();
+      } catch (error: any) {
+        // if throws - offer already canceled - expect to throw the following error
+        expect(error).to.be.instanceOf(AnchorError);
+        expect((error as AnchorError).error.errorCode.code).to.equal(
+          "AccountNotInitialized"
+        );
+      }
+    }
+
+    for (const offer of offers.filter(
+      (offer) => offer.srcToken === 'spl' && offer.type === 'monochain'
+    )) {
+      try {
+        await program.methods
+          .cancelOffer(offer.id)
+          .accounts({
+            seller: accounts.srcSeller.publicKey,
+            otcConfig: accounts.otcConfig,
+            offer: offer.publicKey,
+
+            escrow: accounts.escrow,
+
+            srcSellerAta: accounts.srcSellerAta,
+            srcEscrowAta: accounts.srcEscrowAta,
+            srcTokenMint: accounts.srcToken,
+          })
+          .signers([accounts.srcSeller])
+          .rpc();
+      } catch (error: any) {
+        // if throws - offer already canceled - expect to throw the following error
+        expect(error).to.be.instanceOf(AnchorError);
+        expect((error as AnchorError).error.errorCode.code).to.equal(
+          "AccountNotInitialized"
+        );
+      }
     }
 
     offers = [];
@@ -162,6 +206,99 @@ describe("CancelOffer", () => {
           "OnlySeller"
         );
       }
+    }
+  })
+
+  it("should update balances canceling monochain sol sol offer", async () => {
+    for (const offer of offers.filter(
+      (offer) => offer.srcToken === 'sol' && offer.type === 'monochain'
+    )) {
+      const initialSellerBalance = await connection.getBalance(
+        accounts.srcSeller.publicKey
+      );
+
+      const initialEscrowBalance = await connection.getBalance(
+        accounts.escrow
+      );
+
+      await program.methods
+        .cancelOffer(offer.id)
+        .accounts({
+          seller: accounts.srcSeller.publicKey,
+          otcConfig: accounts.otcConfig,
+          offer: offer.publicKey,
+
+          escrow: accounts.escrow,
+
+          srcSellerAta: null,
+          srcEscrowAta: null,
+          srcTokenMint: null,
+        })
+        .signers([accounts.srcSeller])
+        .rpc();
+
+      assert(
+        initialEscrowBalance - await connection.getBalance(accounts.escrow) ==
+        CREATE_OFFER_AMOUNTS.srcAmountLdNative,
+        "escrow balance"
+      );
+
+      const delta = 2011440; // lamports required for offer account to be rent-free minus gas
+      expect(await connection.getBalance(accounts.srcSeller.publicKey) - initialSellerBalance).to.be.closeTo(CREATE_OFFER_AMOUNTS.srcAmountLdNative, delta)
+    }
+  })
+
+  it("should update balances canceling monochain spl spl offer", async () => {
+    for (const offer of offers.filter(
+      (offer) => offer.srcToken === 'spl' && offer.type === 'monochain'
+    )) {
+      const initialSellerBalance = (await getBalance(
+        connection,
+        accounts.srcSellerAta
+      )).valueOf();
+
+      const initialEscrowBalance = (await getBalance(
+        connection,
+        accounts.srcEscrowAta
+      )).valueOf();
+
+      await program.methods
+        .cancelOffer(offer.id)
+        .accounts({
+          seller: accounts.srcSeller.publicKey,
+          otcConfig: accounts.otcConfig,
+          offer: offer.publicKey,
+
+          escrow: accounts.escrow,
+
+          srcSellerAta: accounts.srcSellerAta,
+          srcEscrowAta: accounts.srcEscrowAta,
+          srcTokenMint: accounts.srcToken,
+        })
+        .signers([accounts.srcSeller])
+        .rpc();
+
+      const updatedEscrowBalance = (await getBalance(
+        connection,
+        accounts.srcEscrowAta
+      )).valueOf();
+
+      const updatedSellerBalance = (await getBalance(
+        connection,
+        accounts.srcSellerAta
+      )).valueOf();
+
+      assert(
+        initialEscrowBalance - updatedEscrowBalance ==
+        CREATE_OFFER_AMOUNTS.srcAmountLdSpl,
+        "escrow balance"
+      );
+
+      assert(
+        updatedSellerBalance - initialSellerBalance ==
+        CREATE_OFFER_AMOUNTS.srcAmountLdSpl,
+        "seller balance"
+      );
     }
   })
 });

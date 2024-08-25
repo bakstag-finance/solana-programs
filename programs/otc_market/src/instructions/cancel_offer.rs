@@ -14,7 +14,8 @@ pub struct CancelOffer<'info> {
     #[account(
         mut,
         close = seller,
-        seeds = [&offer_id], bump = offer.bump,
+        seeds = [&offer_id], 
+        bump = offer.bump,
         constraint = offer.src_eid == OtcConfig::EID @ OtcError::InvalidEid,
         constraint = offer.src_seller_address == seller.key().to_bytes() @ OtcError::OnlySeller,
     )]
