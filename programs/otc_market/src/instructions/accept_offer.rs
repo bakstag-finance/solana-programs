@@ -14,7 +14,13 @@ pub struct AcceptOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Box<Account<'info, OtcConfig>>,
 
-    #[account(mut, seeds = [&params.offer_id], bump = offer.bump)]
+    #[account(
+        mut, 
+        seeds = [&params.offer_id], 
+        bump = offer.bump,
+        constraint = offer.dst_eid == OtcConfig::EID @ OtcError::InvalidEid,
+        constraint = offer.src_amount_sd >= params.src_amount_sd @ OtcError::ExcessiveAmount
+    )]
     pub offer: Box<Account<'info, Offer>>,
 
     // dst
@@ -93,7 +99,7 @@ pub struct AcceptOffer<'info> {
     pub src_escrow_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
 
     #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
-    /// NOTICE: require for src sol or spl token
+    /// NOTICE: required for src sol token - from | required for src spl token - from_ata
     pub escrow: Option<Account<'info, Escrow>>,
 
     #[account(
@@ -101,7 +107,7 @@ pub struct AcceptOffer<'info> {
         constraint = src_token_mint.key() == Pubkey::new_from_array(offer.src_token_address) @ OtcError::InvalidSrcTokenMint
     )]
     /// NOTICE: required for src spl token - token_mint
-    pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
+    pub src_token_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
 
     pub associated_token_program: Option<Program<'info, AssociatedToken>>,
 
@@ -115,12 +121,6 @@ impl AcceptOffer<'_> {
         ctx: &mut Context<AcceptOffer>,
         params: &AcceptOfferParams
     ) -> Result<AcceptOfferReceipt> {
-        require!(ctx.accounts.offer.dst_eid == OtcConfig::EID, OtcError::InvalidEid);
-        require!(
-            ctx.accounts.offer.src_amount_sd >= params.src_amount_sd,
-            OtcError::ExcessiveAmount
-        );
-
         let accept_offer_receipt = OtcConfig::to_dst_amount(
             params.src_amount_sd,
             ctx.accounts.offer.exchange_rate_sd,
@@ -169,15 +169,15 @@ impl AcceptOffer<'_> {
 
         // monochain offer
         if ctx.accounts.offer.src_eid == ctx.accounts.offer.dst_eid {
+            let src_token_mint = ctx.accounts.src_token_mint.as_deref();
+            let escrow = ctx.accounts.escrow.as_ref().expect(OtcConfig::ERROR_MSG);
+
             let amount_ld: u64;
             {
-                let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
-                    ctx.accounts.src_token_mint.as_ref()
-                );
+                let decimal_conversion_rate =
+                    OtcConfig::get_decimal_conversion_rate(src_token_mint);
                 amount_ld = OtcConfig::sd2ld(params.src_amount_sd, decimal_conversion_rate);
             }
-
-            let escrow = ctx.accounts.escrow.as_ref().expect(OtcConfig::ERROR_MSG);
 
             // send src token to buyer
             OtcConfig::transfer(
@@ -186,7 +186,7 @@ impl AcceptOffer<'_> {
                 Some(ctx.accounts.buyer.as_ref()),
                 ctx.accounts.token_program.as_ref(),
                 ctx.accounts.src_escrow_ata.as_deref(),
-                ctx.accounts.src_token_mint.as_ref(),
+                src_token_mint,
                 ctx.accounts.src_buyer_ata.as_deref(),
                 Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
             )?;

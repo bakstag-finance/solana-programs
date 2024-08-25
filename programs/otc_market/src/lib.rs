@@ -10,7 +10,7 @@ use events::*;
 use instructions::*;
 use state::*;
 
-declare_id!("CZQpH5QzK5CLY6LDBar1NWpmXgs7FwhVLaRREESvCrhj");
+declare_id!("3HbQENo1YoAPd4FDuNJECRWwbbhfbpy2Hjpa59JwH7bu");
 
 #[program]
 pub mod otc_market {
@@ -67,5 +67,13 @@ pub mod otc_market {
         params: AcceptOfferParams
     ) -> Result<AcceptOfferReceipt> {
         AcceptOffer::apply(&mut ctx, &params)
+    }
+
+    pub fn quote_cancel_offer(
+        mut ctx: Context<QuoteCancelOfferOrder>,
+        src_seller_address: [u8; 32],
+        params: AcceptOfferParams
+    ) -> Result<()> {
+        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &params)
     }
 }
