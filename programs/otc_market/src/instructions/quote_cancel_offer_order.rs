@@ -5,8 +5,7 @@ use anchor_spl::token_interface::{ Mint, TokenInterface };
 #[instruction(src_seller_address: [u8; 32], offer_id: [u8; 32])]
 pub struct QuoteCancelOfferOrder<'info> {
     #[account(mut)]
-    /// NOTICE: required for monochain offer
-    pub seller: Option<Signer<'info>>,
+    pub seller: Signer<'info>,
 
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
@@ -14,7 +13,7 @@ pub struct QuoteCancelOfferOrder<'info> {
     #[account(
         seeds = [&offer_id], bump = offer.bump,
         constraint = offer.src_eid == OtcConfig::EID @ OtcError::InvalidEid,
-        constraint = offer.src_seller_address == src_seller_address @ OtcError::OnlySeller,
+        constraint = offer.src_seller_address == seller.key().to_bytes() @ OtcError::OnlySeller,
     )]
     pub offer: Account<'info, Offer>,
 
