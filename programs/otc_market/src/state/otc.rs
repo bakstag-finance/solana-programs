@@ -41,14 +41,12 @@ impl OtcConfig {
             ENDPOINT_ID
         };
 
-        //self.eid = 40168;
-
         // register oapp
         oapp::endpoint_cpi::register_oapp(
             self.endpoint_program,
             oapp_signer,
             accounts,
-            &[Self::OTC_SEED, &admin.as_ref(), &[self.bump]],
+            &[Self::OTC_SEED, &[self.bump]],
             RegisterOAppParams {
                 delegate: self.admin,
             }

@@ -6,15 +6,15 @@ solana_version = "1.17.31"
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-otc_market = "3HbQENo1YoAPd4FDuNJECRWwbbhfbpy2Hjpa59JwH7bu"
+[programs.testnet]
+otc_market = "2fDGk1xhuKokYxG8xdoP8JuFcsP86rp2JZ52oChRuf8j"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "Testnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/cancel/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/omnichain/*.ts"

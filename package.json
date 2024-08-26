@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
+    "@layerzerolabs/lz-solana-sdk-v2": "^2.3.38",
     "@solana/spl-token": "^0.4.8"
   },
   "devDependencies": {
