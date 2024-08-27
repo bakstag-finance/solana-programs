@@ -12,7 +12,7 @@ import {
   sendAndConfirmTransaction,
   Connection,
 } from "@solana/web3.js";
-import { LD_SPL, TOP_UP_AMOUNT, TREASURY_SECRET_KEY } from "./constants";
+import { ENDPOINT_PROGRAM_ID, LD_SPL, TOP_UP_AMOUNT, TREASURY_SECRET_KEY } from "./constants";
 
 export class Accounts {
   otcConfig: PublicKey;
@@ -32,6 +32,9 @@ export class Accounts {
   srcBuyerAta: PublicKey;
   dstSellerAta: PublicKey;
   dstBuyerAta: PublicKey;
+  endpoint: PublicKey;
+  oappRegistry: PublicKey;
+  eventAuthority: PublicKey;
 }
 
 export async function generateAccounts(
@@ -45,7 +48,7 @@ export async function generateAccounts(
   const srcBuyer = Keypair.generate();
   const dstBuyer = Keypair.generate();
 
-  const [otcConfig, _] = PublicKey.findProgramAddressSync(
+  const [otcConfig, ____] = PublicKey.findProgramAddressSync(
     [Buffer.from("Otc")],
     programId
   );
@@ -141,6 +144,18 @@ export async function generateAccounts(
     )
   ).address;
 
+  const endpoint = new PublicKey(ENDPOINT_PROGRAM_ID);
+
+  const [oappRegistry, _] = PublicKey.findProgramAddressSync(
+    [Buffer.from("OApp", "utf8"), otcConfig.toBytes()],
+    endpoint
+  );
+
+  const [eventAuthority, __] = PublicKey.findProgramAddressSync(
+    [Buffer.from("__event_authority", "utf8"), otcConfig.toBytes()],
+    endpoint
+  );
+
   return {
     otcConfig,
     escrow,
@@ -159,6 +174,9 @@ export async function generateAccounts(
     srcBuyerAta,
     dstSellerAta,
     dstBuyerAta,
+    endpoint,
+    oappRegistry,
+    eventAuthority,
   };
 }
 
