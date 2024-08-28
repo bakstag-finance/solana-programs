@@ -1,7 +1,6 @@
 use crate::*;
 
 #[derive(Accounts)]
-#[instruction(params: InitializeParams)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -34,13 +33,15 @@ impl Initialize<'_> {
 
         ctx.accounts.escrow.bump = ctx.bumps.escrow;
 
-        let oapp_signer = ctx.accounts.otc_config.key();
-        ctx.accounts.otc_config.init(
-            params.endpoint_program,
-            ctx.accounts.payer.key(),
-            ctx.remaining_accounts,
-            oapp_signer
-        )
+        // let oapp_signer = ctx.accounts.otc_config.key();
+
+        Ok(())
+        // ctx.accounts.otc_config.init(
+        //     params.endpoint_program,
+        //     ctx.accounts.payer.key(),
+        //     ctx.remaining_accounts,
+        //     oapp_signer
+        // )
     }
 }
 

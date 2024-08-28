@@ -1,16 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
 import {
-  BaseOApp,
-  EndpointProgram,
-  EventPDADeriver,
-  SimpleMessageLibProgram,
-  UlnProgram,
-  oappIDPDA,
+  EndpointProgram
 } from '@layerzerolabs/lz-solana-sdk-v2'
 
 import { Accounts, generateAccounts, topUp } from "../helpers/helper";
@@ -23,10 +18,6 @@ describe("Initialize", () => {
   const programId = program.programId;
   const connection = provider.connection;
   const wallet = provider.wallet as Wallet;
-
-  const ENDPOINT_PROGRAM_ID =
-    "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6";
-  const treasury = Keypair.generate().publicKey;
 
   let accounts: Accounts;
 
@@ -49,11 +40,14 @@ describe("Initialize", () => {
       },
       accounts.endpoint
     )
+    ixAccounts.forEach((ixAccount) => {
+      ixAccount.isSigner = false;
+    });
 
     await program.methods
       .initialize({
-        endpointProgram: new PublicKey(ENDPOINT_PROGRAM_ID),
-        treasury: treasury,
+        endpointProgram: accounts.endpoint,
+        treasury: accounts.treasury,
       })
       .accounts({
         payer: wallet.publicKey,
@@ -64,7 +58,7 @@ describe("Initialize", () => {
       .signers([wallet.payer])
       .rpc();
 
-    await topUp(accounts, connection, wallet.payer);
+    // await topUp(accounts, connection, wallet.payer);
   });
 
   it("should init otc market", async () => { });

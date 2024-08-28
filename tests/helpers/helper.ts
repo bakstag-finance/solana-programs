@@ -49,12 +49,12 @@ export async function generateAccounts(
   const dstBuyer = Keypair.generate();
 
   const [otcConfig, ____] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Otc")],
+    [Buffer.from("Otc", "utf8")],
     programId
   );
 
   const [escrow, ___] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Escrow")],
+    [Buffer.from("Escrow", "utf8")],
     programId
   );
 
