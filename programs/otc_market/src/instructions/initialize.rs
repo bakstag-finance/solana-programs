@@ -33,15 +33,14 @@ impl Initialize<'_> {
 
         ctx.accounts.escrow.bump = ctx.bumps.escrow;
 
-        // let oapp_signer = ctx.accounts.otc_config.key();
+        let oapp_signer = ctx.accounts.otc_config.key();
 
-        Ok(())
-        // ctx.accounts.otc_config.init(
-        //     params.endpoint_program,
-        //     ctx.accounts.payer.key(),
-        //     ctx.remaining_accounts,
-        //     oapp_signer
-        // )
+        ctx.accounts.otc_config.init(
+            params.endpoint_program,
+            ctx.accounts.payer.key(),
+            ctx.remaining_accounts,
+            oapp_signer
+        )
     }
 }
 

@@ -8,7 +8,7 @@ import {
   EndpointProgram
 } from '@layerzerolabs/lz-solana-sdk-v2'
 
-import { Accounts, generateAccounts, topUp } from "../helpers/helper";
+import { Accounts, genAccounts, topUp } from "../helpers/helper";
 
 
 describe("Initialize", () => {
@@ -24,13 +24,19 @@ describe("Initialize", () => {
   before(async () => {
     // init otc
 
-    accounts = await generateAccounts(
+    accounts = await genAccounts(
       connection,
       program.programId,
       wallet.payer
     );
 
-    const ixAccounts = EndpointProgram.instructions.createRegisterOappInstructionAccounts(
+    const ixAccounts = [
+      {
+        pubkey: accounts.endpoint,
+        isSigner: false,
+        isWritable: false
+      }
+    ].concat(EndpointProgram.instructions.createRegisterOappInstructionAccounts(
       {
         payer: wallet.publicKey,
         oapp: accounts.otcConfig,
@@ -39,10 +45,11 @@ describe("Initialize", () => {
         program: accounts.endpoint,
       },
       accounts.endpoint
-    )
+    ))
     ixAccounts.forEach((ixAccount) => {
       ixAccount.isSigner = false;
     });
+
 
     await program.methods
       .initialize({
