@@ -1,7 +1,10 @@
 {
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "build": "yarn && anchor build && anchor keys sync",
+    "rebuild": "rm -rf target node_modules && yarn build",
+    "retest": "cd target && rm -rf deploy && cd .. && yarn build && anchor test"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",

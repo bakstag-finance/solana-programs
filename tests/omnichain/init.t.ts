@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { Connection, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
@@ -9,29 +9,19 @@ import {
   OftTools,
   SetConfigType,
 } from "@layerzerolabs/lz-solana-sdk-v2";
-import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
-
-import type { OmniPointHardhat } from "@layerzerolabs/toolbox-hardhat";
-import { PublicKey } from "@solana/web3.js";
 
 import { solanaToArbSepConfig as peer } from './config';
-
-
-import {
-  DVN_CONFIG_SEED,
-  EXECUTOR_CONFIG_SEED,
-} from "@layerzerolabs/lz-solana-sdk-v2";
 import { Accounts, genAccounts } from "../helpers/helper";
 
 
-describe("Initialize", () => {
+describe("Create OTC", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.OtcMarket as Program<OtcMarket>;
   const programId = program.programId;
-  const connection = provider.connection as unknown as Connection;
+  const connection = provider.connection;
   const wallet = provider.wallet as Wallet;
+  const commitment = "confirmed";
 
   let accounts: Accounts;
 
@@ -39,9 +29,8 @@ describe("Initialize", () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
   });
 
-  it("should init otc", async () => {
-    {
-      console.log("0) init otc");
+  describe("Initialize", () => {
+    it("1. should init otc", async () => {
       const ixAccounts = [
         {
           pubkey: accounts.endpoint,
@@ -63,7 +52,8 @@ describe("Initialize", () => {
       ixAccounts.forEach((ixAccount) => {
         ixAccount.isSigner = false;
       });
-      const sgn = await program.methods
+
+      await program.methods
         .initialize({
           endpointProgram: accounts.endpoint,
           treasury: accounts.treasury,
@@ -75,18 +65,12 @@ describe("Initialize", () => {
         })
         .remainingAccounts(ixAccounts)
         .signers([wallet.payer])
-        .rpc();
-      console.log(
-        `✅ You initialized otc market! View the transaction here: ${sgn}`
-      );
-    }
-    // /*
-    // if create peer fails, just comment otc init and run the tests one more time)))
-    // transaction doesnt have time to be confirmed
-    // TODO: fix this shit
-    {
-      console.log("a) create peer account");
+        .rpc({
+          commitment,
+        });
+    });
 
+    it("2. should init peer account", async () => {
       const tx = new Transaction().add(
         await OftTools.createInitNonceIx(
           wallet.publicKey,
@@ -95,22 +79,18 @@ describe("Initialize", () => {
           peer.peerAddress
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You initialized the peer account for dstEid ${peer.to.eid
-        }! View the transaction here: ${sgn}`
-      );
-    }
+    });
 
-    {
-      console.log("b) init send library");
+    it("3. should init send library", async () => {
       const tx = new Transaction().add(
         await OftTools.createInitSendLibraryIx(
           wallet.publicKey,
@@ -118,22 +98,18 @@ describe("Initialize", () => {
           peer.to.eid
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You initialized the send library for dstEid ${peer.to.eid
-        }! View the transaction here: ${sgn}`
-      );
-    }
+    });
 
-    {
-      console.log("c) initialize receive library for the pathway");
+    it("4. should init receive library", async () => {
       const tx = new Transaction().add(
         await OftTools.createInitReceiveLibraryIx(
           wallet.publicKey,
@@ -141,22 +117,18 @@ describe("Initialize", () => {
           peer.to.eid
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You initialized the receive library for dstEid ${peer.to.eid
-        }! View the transaction here: ${sgn}`
-      );
-    }
+    });
 
-    {
-      console.log("d) initialize OFT Config for the pathway");
+    it("5. should init oapp config", async () => {
       const tx = new Transaction().add(
         await OftTools.createInitConfigIx(
           wallet.publicKey,
@@ -165,25 +137,21 @@ describe("Initialize", () => {
           peer.sendLibrary
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You initialized the config for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    });
+  })
 
-    {
-      console.log("e) set peer");
 
-      // const peerAddress = Array.from(peer.peerAddress);
-      // console.log(peerAddress.length);
+  describe("Set Peer, Enforced Options", () => {
+    it("6. should set peer", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetPeerIx(
           programId, // Your OFT Program ID
@@ -193,22 +161,18 @@ describe("Initialize", () => {
           peer.peerAddress // peer address
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You set the peer for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    });
 
-    {
-      console.log("f) set enforced options");
+    it("7. should set enforced options", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetEnforcedOptionsIx(
           programId,
@@ -219,22 +183,20 @@ describe("Initialize", () => {
           peer.sendAndCallOptions
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You set enforced options for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    })
+  });
 
-    {
-      console.log("g) set send library");
+  describe("Set Libraries", () => {
+    it("8. should set send library", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetSendLibraryIx(
           wallet.publicKey,
@@ -243,22 +205,18 @@ describe("Initialize", () => {
           peer.to.eid
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You set the send library for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    })
 
-    {
-      console.log("h) set receive library");
+    it("9. should set receive library", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetReceiveLibraryIx(
           wallet.publicKey,
@@ -268,23 +226,20 @@ describe("Initialize", () => {
           peer.receiveLibraryConfig.gracePeriod
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ You set the receive library for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
-    // */
+    })
+  });
 
-    {
-      console.log("i) set executor options");
+  describe("Set Options", () => {
+    it("10. should set executor options", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetConfigIx(
           connection,
@@ -297,23 +252,17 @@ describe("Initialize", () => {
         )
       );
 
-      const sgn = await sendAndConfirmTransaction(
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
+    })
 
-      console.log(
-        `✅ Set executor configuration for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
-
-    {
-      console.log("j) set send options");
+    it("11. should set send options", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetConfigIx(
           connection,
@@ -325,22 +274,18 @@ describe("Initialize", () => {
           peer.sendLibrary
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ Set send configuration for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    })
 
-    {
-      console.log("k) set receive options");
+    it("12. should set receive options", async () => {
       const tx = new Transaction().add(
         await OftTools.createSetConfigIx(
           connection,
@@ -352,18 +297,15 @@ describe("Initialize", () => {
           peer.receiveLibraryConfig.receiveLibrary
         )
       );
-      const sgn = await sendAndConfirmTransaction(
+
+      await sendAndConfirmTransaction(
         connection,
         tx,
         [wallet.payer],
         {
-          commitment: `finalized`,
+          commitment,
         }
       );
-      console.log(
-        `✅ Set receive configuration for dstEid ${peer.to.eid}! View the transaction here: ${sgn
-        }`
-      );
-    }
+    })
   });
 });
