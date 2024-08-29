@@ -6,6 +6,8 @@ pub mod quote_accept_offer;
 pub mod quote_create_offer;
 pub mod quote_cancel_offer_order;
 pub mod cancel_offer;
+pub mod set_peer;
+pub mod set_enforced_options;
 
 pub use accept_offer::*;
 pub use create_offer::*;
@@ -15,3 +17,5 @@ pub use quote_accept_offer::*;
 pub use quote_create_offer::*;
 pub use quote_cancel_offer_order::*;
 pub use cancel_offer::*;
+pub use set_peer::*;
+pub use set_enforced_options::*;

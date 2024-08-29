@@ -10,7 +10,7 @@ use events::*;
 use instructions::*;
 use state::*;
 
-declare_id!("GUoV8eVV4udV5bngnkdvmUjhTRSmsMV4GZyC8dq6kTh1");
+declare_id!("FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq");
 
 #[program]
 pub mod otc_market {
@@ -18,6 +18,17 @@ pub mod otc_market {
 
     pub fn initialize(mut ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
         Initialize::apply(&mut ctx, &params)
+    }
+
+    pub fn set_peer(mut ctx: Context<SetPeer>, params: SetPeerParams) -> Result<()> {
+        SetPeer::apply(&mut ctx, &params)
+    }
+
+    pub fn set_enforced_options(
+        mut ctx: Context<SetEnforcedOptions>,
+        params: SetEnforcedOptionsParams,
+    ) -> Result<()> {
+        SetEnforcedOptions::apply(&mut ctx, &params)
     }
 
     /// see [otc]

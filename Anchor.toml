@@ -7,14 +7,14 @@ seeds = false
 skip-lint = false
 
 [programs.testnet]
-otc_market = "2fDGk1xhuKokYxG8xdoP8JuFcsP86rp2JZ52oChRuf8j"
+otc_market = "FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Testnet"
-wallet = "~/.config/solana/id.json"
+wallet = "/home/sasha/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/omnichain/*.ts"
