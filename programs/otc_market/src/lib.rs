@@ -10,7 +10,7 @@ use events::*;
 use instructions::*;
 use state::*;
 
-declare_id!("FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq");
+declare_id!("GUoV8eVV4udV5bngnkdvmUjhTRSmsMV4GZyC8dq6kTh1");
 
 #[program]
 pub mod otc_market {

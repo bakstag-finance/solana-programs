@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.testnet]
-otc_market = "FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq"
+otc_market = "GUoV8eVV4udV5bngnkdvmUjhTRSmsMV4GZyC8dq6kTh1"
 
 [registry]
 url = "https://api.apr.dev"
