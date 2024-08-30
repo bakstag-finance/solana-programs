@@ -4,7 +4,8 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "build": "yarn && anchor build && anchor keys sync",
     "rebuild": "rm -rf target node_modules && yarn build",
-    "retest": "cd target && rm -rf deploy && cd .. && yarn build && anchor test"
+    "retest": "cd target && rm -rf deploy && cd .. && yarn build && anchor test",
+    "close": "chmod +x close_programs.sh && ./close_programs.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
