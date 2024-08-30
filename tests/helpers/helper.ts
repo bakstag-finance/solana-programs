@@ -35,6 +35,7 @@ export class Accounts {
   endpoint: PublicKey;
   oappRegistry: PublicKey;
   eventAuthority: PublicKey;
+  endpointSetting: PublicKey;
 }
 
 export async function genAccounts(
@@ -43,6 +44,11 @@ export async function genAccounts(
   payer: Keypair
 ): Promise<any> {
   const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
+
+  const [endpointSetting, _____] = PublicKey.findProgramAddressSync(
+    [Buffer.from("Endpoint", "utf8")],
+    programId
+  );
 
   const [otcConfig, ____] = PublicKey.findProgramAddressSync(
     [Buffer.from("Otc", "utf8")],
@@ -73,6 +79,7 @@ export async function genAccounts(
     endpoint,
     oappRegistry,
     eventAuthority,
+    endpointSetting
   };
 }
 
@@ -80,7 +87,7 @@ export async function generateAccounts(
   connection: Connection,
   programId: PublicKey,
   payer: Keypair
-): Promise<Accounts> {
+): Promise<Omit<Accounts, "endpoint" | "oappRegistry" | "eventAuthority" | "endpointSetting">> {
   const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
   const srcSeller = Keypair.generate();
   const dstSeller = Keypair.generate();
@@ -183,18 +190,6 @@ export async function generateAccounts(
     )
   ).address;
 
-  const endpoint = new PublicKey(ENDPOINT_PROGRAM_ID);
-
-  const [oappRegistry, _] = PublicKey.findProgramAddressSync(
-    [Buffer.from("OApp", "utf8"), otcConfig.toBytes()],
-    endpoint
-  );
-
-  const [eventAuthority, __] = PublicKey.findProgramAddressSync(
-    [Buffer.from("__event_authority", "utf8"), otcConfig.toBytes()],
-    endpoint
-  );
-
   return {
     otcConfig,
     escrow,
@@ -212,10 +207,7 @@ export async function generateAccounts(
     srcSellerAta,
     srcBuyerAta,
     dstSellerAta,
-    dstBuyerAta,
-    endpoint,
-    oappRegistry,
-    eventAuthority,
+    dstBuyerAta
   };
 }
 

@@ -1,27 +1,28 @@
 use crate::*;
-use oapp::endpoint::{instructions::QuoteParams as EndpointQuoteParams, MessagingFee};
-
+use oapp::endpoint::{ instructions::QuoteParams as EndpointQuoteParams, MessagingFee };
 
 #[derive(Accounts)]
 #[instruction(params: QuoteParams)]
 pub struct Quote<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
-    pub otc_config: Box<Account<'info, OtcConfig>>,
+    pub otc_config: Account<'info, OtcConfig>,
+
     #[account(
         mut,
         seeds = [
             Peer::PEER_SEED,
-            otc_config.key().to_bytes().as_ref(),
+            otc_config.key().as_ref(),
             &params.dst_eid.to_be_bytes()
         ],
         bump = peer.bump
     )]
     pub peer: Account<'info, Peer>,
+
     #[account(
         seeds = [
             EnforcedOptions::ENFORCED_OPTIONS_SEED,
             otc_config.key().as_ref(),
-            &params.dst_eid.to_be_bytes()
+            &params.dst_eid.to_be_bytes(),
         ],
         bump = enforced_options.bump
     )]
@@ -41,15 +42,14 @@ impl Quote<'_> {
                 receiver: ctx.accounts.peer.address,
                 message: message.as_bytes().to_vec(),
                 pay_in_lz_token: params.pay_in_lz_token,
-                options: ctx
-                    .accounts
-                    .enforced_options
-                    .combine_options(&params.compose_msg, &params.options)?,
-            },
+                options: ctx.accounts.enforced_options.combine_options(
+                    &params.compose_msg,
+                    &params.options
+                )?,
+            }
         )
     }
 }
-
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct QuoteParams {

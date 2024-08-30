@@ -10,40 +10,41 @@ use events::*;
 use instructions::*;
 use state::*;
 
-use oapp::{
-    endpoint::{MessagingFee, MessagingReceipt},
-    LzReceiveParams,
-};
+use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq");
+declare_id!("3qAAAcRzN2j6ZJd7SvSndGLkeN9wbxzCnyBy1aciHsXP");
 
 #[program]
 pub mod otc_market {
     use super::*;
 
+    /// see [initialize]
     pub fn initialize(mut ctx: Context<Initialize>, params: InitializeParams) -> Result<()> {
         Initialize::apply(&mut ctx, &params)
     }
 
+    /// see [set_peer]
     pub fn set_peer(mut ctx: Context<SetPeer>, params: SetPeerParams) -> Result<()> {
         SetPeer::apply(&mut ctx, &params)
     }
 
+    /// see [set_enforced_options]
     pub fn set_enforced_options(
         mut ctx: Context<SetEnforcedOptions>,
-        params: SetEnforcedOptionsParams,
+        params: SetEnforcedOptionsParams
     ) -> Result<()> {
         SetEnforcedOptions::apply(&mut ctx, &params)
     }
 
+    /// see [send]
     pub fn send(mut ctx: Context<Send>, params: SendParams) -> Result<MessagingReceipt> {
         Send::apply(&mut ctx, &params)
     }
 
+    /// see [quote]
     pub fn quote(ctx: Context<Quote>, params: QuoteParams) -> Result<MessagingFee> {
         Quote::apply(&ctx, &params)
     }
-
 
     /// see [otc]
     pub fn hash_offer(
