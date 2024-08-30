@@ -10,9 +10,8 @@ import {
   SetConfigType,
 } from "@layerzerolabs/lz-solana-sdk-v2";
 
-import { solanaToArbSepConfig as peer } from './config';
+import { solanaToArbSepConfig as peer } from "./config";
 import { Accounts, genAccounts } from "../helpers/helper";
-
 
 describe("Create OTC", () => {
   const provider = anchor.AnchorProvider.env();
@@ -80,14 +79,9 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
     });
 
     it("3. should init send library", async () => {
@@ -99,14 +93,9 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
     });
 
     it("4. should init receive library", async () => {
@@ -118,14 +107,9 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
     });
 
     it("5. should init oapp config", async () => {
@@ -138,17 +122,11 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
     });
-  })
-
+  });
 
   describe("Set Peer, Enforced Options", () => {
     it("6. should set peer", async () => {
@@ -162,14 +140,9 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
     });
 
     it("7. should set enforced options", async () => {
@@ -184,15 +157,10 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
-    })
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
   });
 
   describe("Set Libraries", () => {
@@ -206,15 +174,10 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
-    })
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
 
     it("9. should set receive library", async () => {
       const tx = new Transaction().add(
@@ -227,15 +190,10 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
-    })
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
   });
 
   describe("Set Options", () => {
@@ -252,15 +210,10 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
-    })
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
 
     it("11. should set send options", async () => {
       const tx = new Transaction().add(
@@ -275,15 +228,10 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
-          commitment,
-        }
-      );
-    })
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
 
     it("12. should set receive options", async () => {
       const tx = new Transaction().add(
@@ -298,14 +246,52 @@ describe("Create OTC", () => {
         )
       );
 
-      await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
+      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+        commitment,
+      });
+    });
+  });
+
+  it("1. should quote", async () => {
+    const ixAccounts = [
+      {
+        pubkey: accounts.endpoint,
+        isSigner: false,
+        isWritable: false,
+      },
+    ].concat(
+      EndpointProgram.instructions.createRegisterOappInstructionAccounts(
         {
-          commitment,
-        }
-      );
-    })
+          payer: wallet.publicKey,
+          oapp: accounts.otcConfig,
+          oappRegistry: accounts.oappRegistry,
+          eventAuthority: accounts.eventAuthority,
+          program: accounts.endpoint,
+        },
+        accounts.endpoint
+      )
+    );
+    ixAccounts.forEach((ixAccount) => {
+      ixAccount.isSigner = false;
+    });
+
+    // await program.methods
+    //   .quote({
+    //     pub dst_eid: u32,
+    //     pub to: [u8; 32],
+    //     pub options: Vec<u8>,
+    //     pub compose_msg: Option<Vec<u8>>,
+    //     pub pay_in_lz_token: bool,
+    //   })
+    //   .accounts({
+    //     payer: wallet.publicKey,
+    //     otcConfig: accounts.otcConfig,
+    //     escrow: accounts.escrow,
+    //   })
+    //   .remainingAccounts(ixAccounts)
+    //   .signers([wallet.payer])
+    //   .rpc({
+    //     commitment,
+    //   });
   });
 });

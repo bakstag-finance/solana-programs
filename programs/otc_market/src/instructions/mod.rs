@@ -8,6 +8,8 @@ pub mod quote_cancel_offer_order;
 pub mod cancel_offer;
 pub mod set_peer;
 pub mod set_enforced_options;
+pub mod send;
+pub mod quote;
 
 pub use accept_offer::*;
 pub use create_offer::*;
@@ -19,3 +21,5 @@ pub use quote_cancel_offer_order::*;
 pub use cancel_offer::*;
 pub use set_peer::*;
 pub use set_enforced_options::*;
+pub use send::*;
+pub use quote::*;

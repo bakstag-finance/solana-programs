@@ -10,7 +10,12 @@ use events::*;
 use instructions::*;
 use state::*;
 
-declare_id!("D3obV2hkC2kx3oidkgBjMD1kro1GEQfMtxWjTuwrz7EF");
+use oapp::{
+    endpoint::{MessagingFee, MessagingReceipt},
+    LzReceiveParams,
+};
+
+declare_id!("FbgywbJQx33jc8x8XHCncruqJdX7YTFEY4751u3MDWEq");
 
 #[program]
 pub mod otc_market {
@@ -30,6 +35,15 @@ pub mod otc_market {
     ) -> Result<()> {
         SetEnforcedOptions::apply(&mut ctx, &params)
     }
+
+    pub fn send(mut ctx: Context<Send>, params: SendParams) -> Result<MessagingReceipt> {
+        Send::apply(&mut ctx, &params)
+    }
+
+    pub fn quote(ctx: Context<Quote>, params: QuoteParams) -> Result<MessagingFee> {
+        Quote::apply(&ctx, &params)
+    }
+
 
     /// see [otc]
     pub fn hash_offer(
