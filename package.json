@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@layerzerolabs/lz-solana-sdk-v2": "^2.3.38",
+    "@layerzerolabs/lz-solana-sdk-v2": "^2.3.40",
     "@layerzerolabs/toolbox-hardhat": "^0.3.7",
     "@solana/spl-token": "^0.4.8"
   },

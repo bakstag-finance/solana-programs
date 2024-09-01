@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { Transaction, sendAndConfirmTransaction, Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
@@ -8,7 +8,9 @@ import {
   EndpointProgram,
   OftTools,
   SetConfigType,
+  MessageLibInterface
 } from "@layerzerolabs/lz-solana-sdk-v2";
+import { addressToBytes32, Options, PacketPath, hexZeroPadTo32 } from '@layerzerolabs/lz-v2-utilities'
 
 import { solanaToArbSepConfig as peer } from "./config";
 import { Accounts, genAccounts } from "../helpers/helper";
@@ -253,45 +255,105 @@ describe("Create OTC", () => {
   });
 
   it("1. should quote", async () => {
-    const ixAccounts = [
-      {
-        pubkey: accounts.endpoint,
-        isSigner: false,
-        isWritable: false,
-      },
-    ].concat(
-      EndpointProgram.instructions.createRegisterOappInstructionAccounts(
-        {
-          payer: wallet.publicKey,
-          oapp: accounts.otcConfig,
-          oappRegistry: accounts.oappRegistry,
-          eventAuthority: accounts.eventAuthority,
-          program: accounts.endpoint,
-        },
-        accounts.endpoint
-      )
-    );
-    ixAccounts.forEach((ixAccount) => {
-      ixAccount.isSigner = false;
-    });
+    // const endpoint = new EndpointProgram.Endpoint(
+    //   accounts.endpoint
+    // )
 
-    // await program.methods
-    //   .quote({
-    //     pub dst_eid: u32,
-    //     pub to: [u8; 32],
-    //     pub options: Vec<u8>,
-    //     pub compose_msg: Option<Vec<u8>>,
-    //     pub pay_in_lz_token: bool,
-    //   })
-    //   .accounts({
-    //     payer: wallet.publicKey,
-    //     otcConfig: accounts.otcConfig,
-    //     escrow: accounts.escrow,
-    //   })
-    //   .remainingAccounts(ixAccounts)
-    //   .signers([wallet.payer])
-    //   .rpc({
-    //     commitment,
-    //   });
+    // const nonce = Keypair.generate().publicKey;
+    // const sendLibraryInfo = Keypair.generate().publicKey;
+    // const defaultSendLibraryConfig = Keypair.generate().publicKey;
+    // const sendLibraryConfig = Keypair.generate().publicKey;
+    // const sendLibraryProgram = Keypair.generate().publicKey;
+
+    // const sender = Keypair.generate().publicKey;
+
+
+    // const srcEid = 123;
+
+    // const path: PacketPath = {
+    //   srcEid,
+    //   sender: "from",
+    //   dstEid,
+    //   receiver: hexZeroPadTo32(receiver),
+    // }
+
+
+    // const ix = EndpointProgram.instructions.createQuoteInstruction(
+    //   {
+    //     endpoint: endpoint.deriver.setting()[0],
+    //     // Get remaining accounts from msgLib(simple_msgLib or uln)
+    //     anchorRemainingAccounts: await endpoint.getQuoteIXAccountMetaForCPI(connection, wallet.publicKey, path, msgLibProgram),
+    //     sendLibraryProgram,
+    //     sendLibraryConfig,
+    //     defaultSendLibraryConfig,
+    //     sendLibraryInfo,
+    //     nonce,
+    //   } as EndpointProgram.instructions.QuoteInstructionAccounts,
+    //   {
+    //     params: {
+    //       sender,
+    //       dstEid: 123,
+    //       receiver: [1, 2, 3],
+    //       message: Uint8Array.from([1, 2, 3]),
+    //       options: Uint8Array.from([1, 2, 3]),
+    //       payInLzToken: true,
+    //     } satisfies EndpointProgram.types.QuoteParams,
+    //   } satisfies EndpointProgram.instructions.QuoteInstructionArgs,
+    //   accounts.endpoint
+    // )
+
+    // const ixAccounts = [
+    //   {
+    //     pubkey: accounts.endpoint,
+    //     isSigner: false,
+    //     isWritable: false,
+    //   },
+    // ].concat(
+    //   EndpointProgram.instructions.createQuoteInstructionAccounts(
+    //     {
+    //       sendLibraryProgram: msgLibProgram,
+    //       sendLibraryConfig,
+    //       defaultSendLibraryConfig,
+    //       sendLibraryInfo,
+    //       endpoint: accounts.endpointSetting,
+    //       nonce,
+    //     },
+    //     accounts.endpoint
+    //   )
+    // );
+    // ixAccounts.forEach((ixAccount) => {
+    //   ixAccount.isSigner = false;
+    // });
+
+    const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
+      dstEid: peer.to.eid,
+      options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(0, 0).addExecutorOrderedExecutionOption().toBytes()),
+      to: Array.from(addressToBytes32("0xC37713ef41Aff1A7ac1c3D02f6f0B3a57F8A3091")),
+      composeMsg: null,
+      payInLzToken: false
+    };
+
+    const [peerAccount, _] = PublicKey.findProgramAddressSync(
+      [Buffer.from("Peer", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 2)],
+      programId
+    );
+
+    const [enforcedOptions, _] = PublicKey.findProgramAddressSync(
+      [Buffer.from("EnforcedOptions", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 2)],
+      programId
+    );
+
+    await program.methods
+      .quote(quoteParams)
+      .accounts({
+        otcConfig: accounts.otcConfig,
+        peer: peerAccount,
+        enforcedOptions,
+      })
+      .remainingAccounts(ixAccounts)
+      .signers([wallet.payer])
+      .rpc({
+        commitment,
+      });
   });
 });

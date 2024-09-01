@@ -478,21 +478,21 @@
     table "~6.8.2"
     winston "^3.11.0"
 
-"@layerzerolabs/lz-core@^2.3.39":
-  version "2.3.39"
-  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-core/-/lz-core-2.3.39.tgz#d29a0e5e7acaf9bd7c8d33db4dc8e4f22f2f6f93"
-  integrity sha512-sakj2MKwpMMoT4yJ/6rF95kzv9faohDzIAUMLO/E0gMqs33ppNaDwqY6K4zxqf4FE60Mv/cjSfbynicQTlWCIQ==
+"@layerzerolabs/lz-core@^2.3.40":
+  version "2.3.40"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-core/-/lz-core-2.3.40.tgz#4cfe1915620a04626cfeda9975325387e27882ee"
+  integrity sha512-uAFZArN0tLMlZ7Kk2DcQnMQs9GgfxQajtT0qYJL9d49T3MwjaeFESCNSzE3CQ1TmYlhaemRi6NBYVmpX4c5Rlw==
   dependencies:
     tiny-invariant "^1.3.1"
 
-"@layerzerolabs/lz-corekit-solana@^2.3.39":
-  version "2.3.39"
-  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-corekit-solana/-/lz-corekit-solana-2.3.39.tgz#6bc50767f98a97fcae369036d3e614ab4cd8dfa2"
-  integrity sha512-gV8hvO/a7wWwkRsX7Tv0H5KMCXOFCDTnyVTcyHky0WFvUJ/1aVyiKt/MXsLDfjJPlLFMkecZ6we6Cd6NScORBA==
+"@layerzerolabs/lz-corekit-solana@^2.3.40":
+  version "2.3.40"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-corekit-solana/-/lz-corekit-solana-2.3.40.tgz#6612f2da8ed13128b7fabc3e8011315da814ff55"
+  integrity sha512-0E00EXZlT1PHYMij1RnmurOJrGp7YIdPnqP1/m3tCEYwk8C4aaSVt+/OD6wMAcq82iibA0CBlStvd9LbqPd8OA==
   dependencies:
     "@coral-xyz/anchor" "^0.29.0"
     "@ethersproject/bytes" "^5.7.0"
-    "@layerzerolabs/lz-core" "^2.3.39"
+    "@layerzerolabs/lz-core" "^2.3.40"
     "@noble/hashes" "^1.3.2"
     "@noble/secp256k1" "^1.7.1"
     "@solana/web3.js" "^1.92.1"
@@ -505,6 +505,13 @@
   version "2.3.39"
   resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-definitions/-/lz-definitions-2.3.39.tgz#62679174b8eabcf49e8d031f2feff4e6c289f119"
   integrity sha512-PcRrn7/ZNEcNoa23gkfJ0GNLVFYl/OVj5h9ZOTLNCTXzI2qPAcA2n2VQI9t4qMHX+3c+V7pZhvQMmD9qt4fY4g==
+  dependencies:
+    tiny-invariant "^1.3.1"
+
+"@layerzerolabs/lz-definitions@^2.3.40":
+  version "2.3.40"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-definitions/-/lz-definitions-2.3.40.tgz#5c7443bf8efb4a144c4f7885bfe13846e7f514d3"
+  integrity sha512-siQ8L0OVWkKHQFuPYpaV1mgn9+NJ281JC+GLrD4SG9OBUlfR37xMob1zY1VYGQncGoOV86bQiA2L1y8Qc5xrEQ==
   dependencies:
     tiny-invariant "^1.3.1"
 
@@ -526,10 +533,10 @@
     "@layerzerolabs/evm-sdks-core" "^2.3.39"
     ethers "^5.7.2"
 
-"@layerzerolabs/lz-solana-sdk-v2@^2.3.38":
-  version "2.3.39"
-  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-solana-sdk-v2/-/lz-solana-sdk-v2-2.3.39.tgz#fb28b8e1c116a2d086a1de70f1f5dc105e1a8080"
-  integrity sha512-87Xm3PmyTkhizYA6pcq48jwAm09zPFjVjyYDbljzq5n/b2mrAK8E7kEO8YhndooDogbuWTEJYfVDW0bYjIIJxQ==
+"@layerzerolabs/lz-solana-sdk-v2@^2.3.40":
+  version "2.3.40"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-solana-sdk-v2/-/lz-solana-sdk-v2-2.3.40.tgz#73999f23790445cb39abea615c5e24012c128f2b"
+  integrity sha512-n+IqTVsMixvLshu5ymhJnFMzrmoFpMG+Tdj6kxTj78/0YGozkk+z9sy/ndYKat6p2PtLSy5plzcQ3EOqaBrjKg==
   dependencies:
     "@coral-xyz/anchor" "^0.29.0"
     "@ethersproject/abi" "^5.7.0"
@@ -539,9 +546,9 @@
     "@ethersproject/keccak256" "^5.7.0"
     "@ethersproject/sha2" "^5.7.0"
     "@ethersproject/solidity" "^5.7.0"
-    "@layerzerolabs/lz-corekit-solana" "^2.3.39"
-    "@layerzerolabs/lz-definitions" "^2.3.39"
-    "@layerzerolabs/lz-v2-utilities" "^2.3.39"
+    "@layerzerolabs/lz-corekit-solana" "^2.3.40"
+    "@layerzerolabs/lz-definitions" "^2.3.40"
+    "@layerzerolabs/lz-v2-utilities" "^2.3.40"
     "@metaplex-foundation/beet" "^0.7.1"
     "@metaplex-foundation/beet-solana" "^0.4.0"
     "@metaplex-foundation/solita" "^0.20.1"
@@ -556,6 +563,20 @@
   version "2.3.39"
   resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-v2-utilities/-/lz-v2-utilities-2.3.39.tgz#b592789aa92f92d883e14681e95146105172ce94"
   integrity sha512-sue9hz030+alJu29gPSjQXTDKJF5z8KjeJ9JWNgUqIFosgCs44C1ok4sVse+7uaNP//fIokuRcV4hvUw5mRSZg==
+  dependencies:
+    "@ethersproject/abi" "^5.7.0"
+    "@ethersproject/address" "^5.7.0"
+    "@ethersproject/bignumber" "^5.7.0"
+    "@ethersproject/bytes" "^5.7.0"
+    "@ethersproject/keccak256" "^5.7.0"
+    "@ethersproject/solidity" "^5.7.0"
+    bs58 "^5.0.0"
+    tiny-invariant "^1.3.1"
+
+"@layerzerolabs/lz-v2-utilities@^2.3.40":
+  version "2.3.40"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-v2-utilities/-/lz-v2-utilities-2.3.40.tgz#23cb32850943293bd6600fb853f4182d010cfcdf"
+  integrity sha512-wYG/DZl6T+gc0zdEFZITWLvJfMZxZ4HPZIT2AoALnGETvGFADturFA2gNELfnzSTibLjRSSi6JH8eshaMyewMg==
   dependencies:
     "@ethersproject/abi" "^5.7.0"
     "@ethersproject/address" "^5.7.0"
