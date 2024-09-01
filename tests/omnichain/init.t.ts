@@ -25,7 +25,7 @@ import { hexlify } from "ethers/lib/utils";
 import { solanaToArbSepConfig as peer } from "./config";
 import { Accounts, genAccounts } from "../helpers/helper";
 
-describe("Create OTC", () => {
+describe("Omnichain", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.OtcMarket as Program<OtcMarket>;
@@ -43,208 +43,210 @@ describe("Create OTC", () => {
   });
 
   describe("Initialize", () => {
-    it("1. should init otc", async () => {
-      await program.methods
-        .initialize({
-          endpointProgram: accounts.endpoint,
-          treasury: accounts.treasury,
-        })
-        .accounts({
-          payer: wallet.publicKey,
-          otcConfig: accounts.otcConfig,
-          escrow: accounts.escrow,
-        })
-        .remainingAccounts(
-          endpoint.getRegisterOappIxAccountMetaForCPI(
+    describe("Create accounts", () => {
+      it("1. should init otc", async () => {
+        await program.methods
+          .initialize({
+            endpointProgram: accounts.endpoint,
+            treasury: accounts.treasury,
+          })
+          .accounts({
+            payer: wallet.publicKey,
+            otcConfig: accounts.otcConfig,
+            escrow: accounts.escrow,
+          })
+          .remainingAccounts(
+            endpoint.getRegisterOappIxAccountMetaForCPI(
+              wallet.publicKey,
+              accounts.otcConfig,
+            ),
+          )
+          .signers([wallet.payer])
+          .rpc({
+            commitment,
+          });
+      });
+
+      it("2. should init peer account", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createInitNonceIx(
             wallet.publicKey,
+            peer.to.eid,
             accounts.otcConfig,
+            peer.peerAddress,
           ),
-        )
-        .signers([wallet.payer])
-        .rpc({
+        );
+
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
           commitment,
         });
-    });
+      });
 
-    it("2. should init peer account", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createInitNonceIx(
-          wallet.publicKey,
-          peer.to.eid,
-          accounts.otcConfig,
-          peer.peerAddress,
-        ),
-      );
+      it("3. should init send library", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createInitSendLibraryIx(
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
+      });
+
+      it("4. should init receive library", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createInitReceiveLibraryIx(
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+          ),
+        );
+
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
+      });
+
+      it("5. should init oapp config", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createInitConfigIx(
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+            peer.sendLibrary,
+          ),
+        );
+
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
     });
 
-    it("3. should init send library", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createInitSendLibraryIx(
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-        ),
-      );
+    describe("Set Peer, Enforced Options", () => {
+      it("6. should set peer", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetPeerIx(
+            programId, // Your OFT Program ID
+            wallet.publicKey, // admin
+            accounts.otcConfig, // oft config account
+            peer.to.eid, // destination endpoint id
+            peer.peerAddress, // peer address
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
+      });
+
+      it("7. should set enforced options", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetEnforcedOptionsIx(
+            programId,
+            wallet.publicKey, // your admin address
+            accounts.otcConfig, // your OFT Config
+            peer.to.eid, // destination endpoint id for the options to apply to
+            peer.sendOptions, // send options
+            peer.sendAndCallOptions,
+          ),
+        );
+
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
     });
 
-    it("4. should init receive library", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createInitReceiveLibraryIx(
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-        ),
-      );
+    describe("Set Libraries", () => {
+      it("8. should set send library", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetSendLibraryIx(
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.sendLibrary,
+            peer.to.eid,
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
+      });
+
+      it("9. should set receive library", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetReceiveLibraryIx(
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.receiveLibraryConfig.receiveLibrary,
+            peer.to.eid,
+            peer.receiveLibraryConfig.gracePeriod,
+          ),
+        );
+
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
     });
 
-    it("5. should init oapp config", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createInitConfigIx(
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-          peer.sendLibrary,
-        ),
-      );
+    describe("Set Options", () => {
+      it("10. should set executor options", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetConfigIx(
+            connection,
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+            SetConfigType.EXECUTOR,
+            peer.executorConfig,
+            peer.sendLibrary,
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
-    });
-  });
 
-  describe("Set Peer, Enforced Options", () => {
-    it("6. should set peer", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetPeerIx(
-          programId, // Your OFT Program ID
-          wallet.publicKey, // admin
-          accounts.otcConfig, // oft config account
-          peer.to.eid, // destination endpoint id
-          peer.peerAddress, // peer address
-        ),
-      );
+      it("11. should set send options", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetConfigIx(
+            connection,
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+            SetConfigType.SEND_ULN,
+            peer.sendUlnConfig,
+            peer.sendLibrary,
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
-    });
 
-    it("7. should set enforced options", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetEnforcedOptionsIx(
-          programId,
-          wallet.publicKey, // your admin address
-          accounts.otcConfig, // your OFT Config
-          peer.to.eid, // destination endpoint id for the options to apply to
-          peer.sendOptions, // send options
-          peer.sendAndCallOptions,
-        ),
-      );
+      it("12. should set receive options", async () => {
+        const tx = new Transaction().add(
+          await OftTools.createSetConfigIx(
+            connection,
+            wallet.publicKey,
+            accounts.otcConfig,
+            peer.to.eid,
+            SetConfigType.RECEIVE_ULN,
+            peer.receiveUlnConfig,
+            peer.receiveLibraryConfig.receiveLibrary,
+          ),
+        );
 
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
-      });
-    });
-  });
-
-  describe("Set Libraries", () => {
-    it("8. should set send library", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetSendLibraryIx(
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.sendLibrary,
-          peer.to.eid,
-        ),
-      );
-
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
-      });
-    });
-
-    it("9. should set receive library", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetReceiveLibraryIx(
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.receiveLibraryConfig.receiveLibrary,
-          peer.to.eid,
-          peer.receiveLibraryConfig.gracePeriod,
-        ),
-      );
-
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
-      });
-    });
-  });
-
-  describe("Set Options", () => {
-    it("10. should set executor options", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetConfigIx(
-          connection,
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-          SetConfigType.EXECUTOR,
-          peer.executorConfig,
-          peer.sendLibrary,
-        ),
-      );
-
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
-      });
-    });
-
-    it("11. should set send options", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetConfigIx(
-          connection,
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-          SetConfigType.SEND_ULN,
-          peer.sendUlnConfig,
-          peer.sendLibrary,
-        ),
-      );
-
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
-      });
-    });
-
-    it("12. should set receive options", async () => {
-      const tx = new Transaction().add(
-        await OftTools.createSetConfigIx(
-          connection,
-          wallet.publicKey,
-          accounts.otcConfig,
-          peer.to.eid,
-          SetConfigType.RECEIVE_ULN,
-          peer.receiveUlnConfig,
-          peer.receiveLibraryConfig.receiveLibrary,
-        ),
-      );
-
-      await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-        commitment,
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+          commitment,
+        });
       });
     });
   });
@@ -266,12 +268,6 @@ describe("Create OTC", () => {
             peer.to.eid,
           )
         ).programId,
-      );
-      const ixAccounts = await endpoint.getQuoteIXAccountMetaForCPI(
-        connection,
-        wallet.publicKey,
-        path,
-        sendLib,
       );
 
       const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
@@ -302,18 +298,24 @@ describe("Create OTC", () => {
         programId,
       );
 
-      await program.methods
+      const msgFee: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
         .quote(quoteParams)
         .accounts({
           otcConfig: accounts.otcConfig,
           peer: peerAccount,
           enforcedOptions,
         })
-        .remainingAccounts(ixAccounts)
-        .signers([wallet.payer])
-        .rpc({
-          commitment,
-        });
+        .remainingAccounts(
+          await endpoint.getQuoteIXAccountMetaForCPI(
+            connection,
+            wallet.publicKey,
+            path,
+            sendLib,
+          ),
+        )
+        .view();
+
+      console.log(msgFee.nativeFee.toNumber());
     });
   });
 });

@@ -8,12 +8,7 @@ pub struct Quote<'info> {
     pub otc_config: Account<'info, OtcConfig>,
 
     #[account(
-        mut,
-        seeds = [
-            Peer::PEER_SEED,
-            otc_config.key().as_ref(),
-            &params.dst_eid.to_be_bytes()
-        ],
+        seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &params.dst_eid.to_be_bytes()],
         bump = peer.bump
     )]
     pub peer: Account<'info, Peer>,
