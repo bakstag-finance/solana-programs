@@ -12,7 +12,12 @@ import {
   sendAndConfirmTransaction,
   Connection,
 } from "@solana/web3.js";
-import { ENDPOINT_PROGRAM_ID, LD_SPL, TOP_UP_AMOUNT, TREASURY_SECRET_KEY } from "./constants";
+import {
+  ENDPOINT_PROGRAM_ID,
+  LD_SPL,
+  TOP_UP_AMOUNT,
+  TREASURY_SECRET_KEY,
+} from "./constants";
 
 export class Accounts {
   otcConfig: PublicKey;
@@ -41,35 +46,35 @@ export class Accounts {
 export async function genAccounts(
   connection: Connection,
   programId: PublicKey,
-  payer: Keypair
+  payer: Keypair,
 ): Promise<any> {
   const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
 
   const [endpointSetting, _____] = PublicKey.findProgramAddressSync(
     [Buffer.from("Endpoint", "utf8")],
-    programId
+    programId,
   );
 
   const [otcConfig, ____] = PublicKey.findProgramAddressSync(
     [Buffer.from("Otc", "utf8")],
-    programId
+    programId,
   );
 
   const [escrow, ___] = PublicKey.findProgramAddressSync(
     [Buffer.from("Escrow", "utf8")],
-    programId
+    programId,
   );
 
   const endpoint = new PublicKey(ENDPOINT_PROGRAM_ID);
 
   const [oappRegistry, _] = PublicKey.findProgramAddressSync(
     [Buffer.from("OApp", "utf8"), otcConfig.toBytes()],
-    endpoint
+    endpoint,
   );
 
   const [eventAuthority, __] = PublicKey.findProgramAddressSync(
     [Buffer.from("__event_authority", "utf8")],
-    endpoint
+    endpoint,
   );
 
   return {
@@ -79,15 +84,20 @@ export async function genAccounts(
     endpoint,
     oappRegistry,
     eventAuthority,
-    endpointSetting
+    endpointSetting,
   };
 }
 
 export async function generateAccounts(
   connection: Connection,
   programId: PublicKey,
-  payer: Keypair
-): Promise<Omit<Accounts, "endpoint" | "oappRegistry" | "eventAuthority" | "endpointSetting">> {
+  payer: Keypair,
+): Promise<
+  Omit<
+    Accounts,
+    "endpoint" | "oappRegistry" | "eventAuthority" | "endpointSetting"
+  >
+> {
   const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
   const srcSeller = Keypair.generate();
   const dstSeller = Keypair.generate();
@@ -96,12 +106,12 @@ export async function generateAccounts(
 
   const [otcConfig, ____] = PublicKey.findProgramAddressSync(
     [Buffer.from("Otc", "utf8")],
-    programId
+    programId,
   );
 
   const [escrow, ___] = PublicKey.findProgramAddressSync(
     [Buffer.from("Escrow", "utf8")],
-    programId
+    programId,
   );
 
   const srcToken = await createMint(
@@ -109,14 +119,14 @@ export async function generateAccounts(
     payer,
     payer.publicKey,
     null,
-    LD_SPL
+    LD_SPL,
   );
   const dstToken = await createMint(
     connection,
     payer,
     payer.publicKey,
     null,
-    LD_SPL
+    LD_SPL,
   );
 
   const srcSellerAta = (
@@ -124,7 +134,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      srcSeller.publicKey
+      srcSeller.publicKey,
     )
   ).address;
 
@@ -133,7 +143,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      dstBuyer.publicKey
+      dstBuyer.publicKey,
     )
   ).address;
 
@@ -142,7 +152,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      dstSeller.publicKey
+      dstSeller.publicKey,
     )
   ).address;
 
@@ -151,7 +161,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      dstBuyer.publicKey
+      dstBuyer.publicKey,
     )
   ).address;
 
@@ -161,7 +171,7 @@ export async function generateAccounts(
       payer,
       srcToken,
       escrow,
-      true
+      true,
     )
   ).address;
   const dstEscrowAta = (
@@ -170,7 +180,7 @@ export async function generateAccounts(
       payer,
       dstToken,
       escrow,
-      true
+      true,
     )
   ).address;
   const srcTreasuryAta = (
@@ -178,7 +188,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      treasury
+      treasury,
     )
   ).address;
   const dstTreasuryAta = (
@@ -186,7 +196,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      treasury
+      treasury,
     )
   ).address;
 
@@ -207,32 +217,32 @@ export async function generateAccounts(
     srcSellerAta,
     srcBuyerAta,
     dstSellerAta,
-    dstBuyerAta
+    dstBuyerAta,
   };
 }
 
 export async function topUp(
   accounts: Accounts,
   connection: Connection,
-  payer: Keypair
+  payer: Keypair,
 ) {
   await transferSol(
     connection,
     payer,
     accounts.srcSeller.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
   await transferSol(
     connection,
     payer,
     accounts.dstSeller.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
   await transferSol(
     connection,
     payer,
     accounts.dstBuyer.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
 }
 
@@ -240,14 +250,14 @@ export async function transferSol(
   connection: Connection,
   from: Keypair,
   to: PublicKey,
-  lamports: Number
+  lamports: Number,
 ) {
   const transaction = new Transaction().add(
     SystemProgram.transfer({
       fromPubkey: from.publicKey,
       toPubkey: to,
       lamports: BigInt(lamports.valueOf()),
-    })
+    }),
   );
   await sendAndConfirmTransaction(connection, transaction, [from]);
 }

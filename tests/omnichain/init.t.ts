@@ -1,6 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { Transaction, sendAndConfirmTransaction, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  Transaction,
+  sendAndConfirmTransaction,
+  Keypair,
+  PublicKey,
+} from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
@@ -8,8 +13,14 @@ import {
   EndpointProgram,
   OftTools,
   SetConfigType,
+  UlnProgram,
 } from "@layerzerolabs/lz-solana-sdk-v2";
-import { addressToBytes32, Options, PacketPath, hexZeroPadTo32 } from '@layerzerolabs/lz-v2-utilities'
+import {
+  Options,
+  PacketPath,
+  bytes32ToEthAddress,
+} from "@layerzerolabs/lz-v2-utilities";
+import { hexlify } from "ethers/lib/utils";
 
 import { solanaToArbSepConfig as peer } from "./config";
 import { Accounts, genAccounts } from "../helpers/helper";
@@ -24,35 +35,15 @@ describe("Create OTC", () => {
   const commitment = "confirmed";
 
   let accounts: Accounts;
+  let endpoint: EndpointProgram.Endpoint;
 
   before(async () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
+    endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
   });
 
   describe("Initialize", () => {
     it("1. should init otc", async () => {
-      const ixAccounts = [
-        {
-          pubkey: accounts.endpoint,
-          isSigner: false,
-          isWritable: false,
-        },
-      ].concat(
-        EndpointProgram.instructions.createRegisterOappInstructionAccounts(
-          {
-            payer: wallet.publicKey,
-            oapp: accounts.otcConfig,
-            oappRegistry: accounts.oappRegistry,
-            eventAuthority: accounts.eventAuthority,
-            program: accounts.endpoint,
-          },
-          accounts.endpoint
-        )
-      );
-      ixAccounts.forEach((ixAccount) => {
-        ixAccount.isSigner = false;
-      });
-
       await program.methods
         .initialize({
           endpointProgram: accounts.endpoint,
@@ -63,7 +54,12 @@ describe("Create OTC", () => {
           otcConfig: accounts.otcConfig,
           escrow: accounts.escrow,
         })
-        .remainingAccounts(ixAccounts)
+        .remainingAccounts(
+          endpoint.getRegisterOappIxAccountMetaForCPI(
+            wallet.publicKey,
+            accounts.otcConfig,
+          ),
+        )
         .signers([wallet.payer])
         .rpc({
           commitment,
@@ -76,8 +72,8 @@ describe("Create OTC", () => {
           wallet.publicKey,
           peer.to.eid,
           accounts.otcConfig,
-          peer.peerAddress
-        )
+          peer.peerAddress,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -90,8 +86,8 @@ describe("Create OTC", () => {
         await OftTools.createInitSendLibraryIx(
           wallet.publicKey,
           accounts.otcConfig,
-          peer.to.eid
-        )
+          peer.to.eid,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -104,8 +100,8 @@ describe("Create OTC", () => {
         await OftTools.createInitReceiveLibraryIx(
           wallet.publicKey,
           accounts.otcConfig,
-          peer.to.eid
-        )
+          peer.to.eid,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -119,8 +115,8 @@ describe("Create OTC", () => {
           wallet.publicKey,
           accounts.otcConfig,
           peer.to.eid,
-          peer.sendLibrary
-        )
+          peer.sendLibrary,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -137,8 +133,8 @@ describe("Create OTC", () => {
           wallet.publicKey, // admin
           accounts.otcConfig, // oft config account
           peer.to.eid, // destination endpoint id
-          peer.peerAddress // peer address
-        )
+          peer.peerAddress, // peer address
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -154,8 +150,8 @@ describe("Create OTC", () => {
           accounts.otcConfig, // your OFT Config
           peer.to.eid, // destination endpoint id for the options to apply to
           peer.sendOptions, // send options
-          peer.sendAndCallOptions
-        )
+          peer.sendAndCallOptions,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -171,8 +167,8 @@ describe("Create OTC", () => {
           wallet.publicKey,
           accounts.otcConfig,
           peer.sendLibrary,
-          peer.to.eid
-        )
+          peer.to.eid,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -187,8 +183,8 @@ describe("Create OTC", () => {
           accounts.otcConfig,
           peer.receiveLibraryConfig.receiveLibrary,
           peer.to.eid,
-          peer.receiveLibraryConfig.gracePeriod
-        )
+          peer.receiveLibraryConfig.gracePeriod,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -207,8 +203,8 @@ describe("Create OTC", () => {
           peer.to.eid,
           SetConfigType.EXECUTOR,
           peer.executorConfig,
-          peer.sendLibrary
-        )
+          peer.sendLibrary,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -225,8 +221,8 @@ describe("Create OTC", () => {
           peer.to.eid,
           SetConfigType.SEND_ULN,
           peer.sendUlnConfig,
-          peer.sendLibrary
-        )
+          peer.sendLibrary,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -243,8 +239,8 @@ describe("Create OTC", () => {
           peer.to.eid,
           SetConfigType.RECEIVE_ULN,
           peer.receiveUlnConfig,
-          peer.receiveLibraryConfig.receiveLibrary
-        )
+          peer.receiveLibraryConfig.receiveLibrary,
+        ),
       );
 
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -255,61 +251,55 @@ describe("Create OTC", () => {
 
   describe("Quote", () => {
     it("should quote", async () => {
-      // const srcEid = 40168;
-      // const path: PacketPath = {
-      //   dstEid,
-      //   srcEid,
-      //   sender: sender.toBuffer().toString('hex'), // unused
-      //   receiver
-      // };
-      // const messageLib = new Uln(msgLibProgram);
-      // const remainingAccounts = await messageLib.getQuoteIXAccountMetaForCPI(connection, wallet.payer, path);
+      const path: PacketPath = {
+        dstEid: peer.to.eid,
+        srcEid: 40168,
+        sender: hexlify(accounts.otcConfig.toBytes()),
+        receiver: bytes32ToEthAddress(peer.peerAddress),
+      };
 
-      const endpoint = new EndpointProgram.Endpoint(
-        accounts.endpoint
-      )
-
-      const { msgLib: sendLib, programId: sendLibProgramId } = await endpoint.getSendLibrary(connection, accounts.otcConfig, peer.to.eid);
-
-      const ixAccounts = [
-        {
-          pubkey: accounts.endpoint,
-          isSigner: false,
-          isWritable: false,
-        },
-      ].concat(
-        EndpointProgram.instructions.createQuoteInstructionAccounts(
-          {
-            sendLibraryProgram: sendLibProgramId,
-            sendLibraryConfig: endpoint.deriver.sendLibraryConfig(accounts.otcConfig, peer.to.eid)[0],
-            defaultSendLibraryConfig: endpoint.deriver.defaultSendLibraryConfig(peer.to.eid)[0],
-            sendLibraryInfo: endpoint.deriver.messageLibraryInfo(sendLib)[0],
-            endpoint: endpoint.deriver.setting()[0],
-            nonce: endpoint.deriver.nonce(accounts.otcConfig, peer.to.eid, peer.peerAddress)[0],
-          },
-          accounts.endpoint
-        )
+      const sendLib = new UlnProgram.Uln(
+        (
+          await endpoint.getSendLibrary(
+            connection,
+            accounts.otcConfig,
+            peer.to.eid,
+          )
+        ).programId,
       );
-      ixAccounts.forEach((ixAccount) => {
-        ixAccount.isSigner = false;
-      });
+      const ixAccounts = await endpoint.getQuoteIXAccountMetaForCPI(
+        connection,
+        wallet.publicKey,
+        path,
+        sendLib,
+      );
 
       const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
         dstEid: peer.to.eid,
-        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(0, 0).addExecutorOrderedExecutionOption().toBytes()),
+        options: Buffer.from(
+          Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes(),
+        ),
         to: Array.from(peer.peerAddress),
         composeMsg: null,
-        payInLzToken: false
+        payInLzToken: false,
       };
 
       const [peerAccount, _] = PublicKey.findProgramAddressSync(
-        [Buffer.from("Peer", "utf8"), accounts.otcConfig.toBytes(), new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4)],
-        programId
+        [
+          Buffer.from("Peer", "utf8"),
+          accounts.otcConfig.toBytes(),
+          new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4),
+        ],
+        programId,
       );
 
       const [enforcedOptions, __] = PublicKey.findProgramAddressSync(
-        [Buffer.from("EnforcedOptions", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 4)],
-        programId
+        [
+          Buffer.from("EnforcedOptions", "utf8"),
+          accounts.otcConfig.toBuffer(),
+          new anchor.BN(quoteParams.dstEid).toBuffer("be", 4),
+        ],
+        programId,
       );
 
       await program.methods
@@ -326,6 +316,4 @@ describe("Create OTC", () => {
         });
     });
   });
-
-
 });

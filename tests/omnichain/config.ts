@@ -46,7 +46,7 @@ const executor = new PublicKey("6doghB248px58JSSwG4qejQ46kFMW4AMj7vzJnWZHNZn");
 const lzDVN = new PublicKey("HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW");
 const lzDVNConfigAccount = PublicKey.findProgramAddressSync(
   [Buffer.from(DVN_CONFIG_SEED, "utf8")],
-  lzDVN
+  lzDVN,
 )[0];
 
 export const solanaToArbSepConfig: SolanaPeerConfig = {
@@ -80,7 +80,7 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
   executorConfig: {
     executor: PublicKey.findProgramAddressSync(
       [Buffer.from(EXECUTOR_CONFIG_SEED, "utf8")],
-      executor
+      executor,
     )[0],
     maxMessageSize: 10000,
   },
