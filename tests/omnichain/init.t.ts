@@ -8,7 +8,6 @@ import {
   EndpointProgram,
   OftTools,
   SetConfigType,
-  MessageLibInterface
 } from "@layerzerolabs/lz-solana-sdk-v2";
 import { addressToBytes32, Options, PacketPath, hexZeroPadTo32 } from '@layerzerolabs/lz-v2-utilities'
 
@@ -254,106 +253,79 @@ describe("Create OTC", () => {
     });
   });
 
-  it("1. should quote", async () => {
-    // const endpoint = new EndpointProgram.Endpoint(
-    //   accounts.endpoint
-    // )
+  describe("Quote", () => {
+    it("should quote", async () => {
+      // const srcEid = 40168;
+      // const path: PacketPath = {
+      //   dstEid,
+      //   srcEid,
+      //   sender: sender.toBuffer().toString('hex'), // unused
+      //   receiver
+      // };
+      // const messageLib = new Uln(msgLibProgram);
+      // const remainingAccounts = await messageLib.getQuoteIXAccountMetaForCPI(connection, wallet.payer, path);
 
-    // const nonce = Keypair.generate().publicKey;
-    // const sendLibraryInfo = Keypair.generate().publicKey;
-    // const defaultSendLibraryConfig = Keypair.generate().publicKey;
-    // const sendLibraryConfig = Keypair.generate().publicKey;
-    // const sendLibraryProgram = Keypair.generate().publicKey;
+      const endpoint = new EndpointProgram.Endpoint(
+        accounts.endpoint
+      )
 
-    // const sender = Keypair.generate().publicKey;
+      const { msgLib: sendLib, programId: sendLibProgramId } = await endpoint.getSendLibrary(connection, accounts.otcConfig, peer.to.eid);
 
-
-    // const srcEid = 123;
-
-    // const path: PacketPath = {
-    //   srcEid,
-    //   sender: "from",
-    //   dstEid,
-    //   receiver: hexZeroPadTo32(receiver),
-    // }
-
-
-    // const ix = EndpointProgram.instructions.createQuoteInstruction(
-    //   {
-    //     endpoint: endpoint.deriver.setting()[0],
-    //     // Get remaining accounts from msgLib(simple_msgLib or uln)
-    //     anchorRemainingAccounts: await endpoint.getQuoteIXAccountMetaForCPI(connection, wallet.publicKey, path, msgLibProgram),
-    //     sendLibraryProgram,
-    //     sendLibraryConfig,
-    //     defaultSendLibraryConfig,
-    //     sendLibraryInfo,
-    //     nonce,
-    //   } as EndpointProgram.instructions.QuoteInstructionAccounts,
-    //   {
-    //     params: {
-    //       sender,
-    //       dstEid: 123,
-    //       receiver: [1, 2, 3],
-    //       message: Uint8Array.from([1, 2, 3]),
-    //       options: Uint8Array.from([1, 2, 3]),
-    //       payInLzToken: true,
-    //     } satisfies EndpointProgram.types.QuoteParams,
-    //   } satisfies EndpointProgram.instructions.QuoteInstructionArgs,
-    //   accounts.endpoint
-    // )
-
-    // const ixAccounts = [
-    //   {
-    //     pubkey: accounts.endpoint,
-    //     isSigner: false,
-    //     isWritable: false,
-    //   },
-    // ].concat(
-    //   EndpointProgram.instructions.createQuoteInstructionAccounts(
-    //     {
-    //       sendLibraryProgram: msgLibProgram,
-    //       sendLibraryConfig,
-    //       defaultSendLibraryConfig,
-    //       sendLibraryInfo,
-    //       endpoint: accounts.endpointSetting,
-    //       nonce,
-    //     },
-    //     accounts.endpoint
-    //   )
-    // );
-    // ixAccounts.forEach((ixAccount) => {
-    //   ixAccount.isSigner = false;
-    // });
-
-    const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
-      dstEid: peer.to.eid,
-      options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(0, 0).addExecutorOrderedExecutionOption().toBytes()),
-      to: Array.from(addressToBytes32("0xC37713ef41Aff1A7ac1c3D02f6f0B3a57F8A3091")),
-      composeMsg: null,
-      payInLzToken: false
-    };
-
-    const [peerAccount, _] = PublicKey.findProgramAddressSync(
-      [Buffer.from("Peer", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 2)],
-      programId
-    );
-
-    const [enforcedOptions, _] = PublicKey.findProgramAddressSync(
-      [Buffer.from("EnforcedOptions", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 2)],
-      programId
-    );
-
-    await program.methods
-      .quote(quoteParams)
-      .accounts({
-        otcConfig: accounts.otcConfig,
-        peer: peerAccount,
-        enforcedOptions,
-      })
-      .remainingAccounts(ixAccounts)
-      .signers([wallet.payer])
-      .rpc({
-        commitment,
+      const ixAccounts = [
+        {
+          pubkey: accounts.endpoint,
+          isSigner: false,
+          isWritable: false,
+        },
+      ].concat(
+        EndpointProgram.instructions.createQuoteInstructionAccounts(
+          {
+            sendLibraryProgram: sendLibProgramId,
+            sendLibraryConfig: endpoint.deriver.sendLibraryConfig(accounts.otcConfig, peer.to.eid)[0],
+            defaultSendLibraryConfig: endpoint.deriver.defaultSendLibraryConfig(peer.to.eid)[0],
+            sendLibraryInfo: endpoint.deriver.messageLibraryInfo(sendLib)[0],
+            endpoint: endpoint.deriver.setting()[0],
+            nonce: endpoint.deriver.nonce(accounts.otcConfig, peer.to.eid, peer.peerAddress)[0],
+          },
+          accounts.endpoint
+        )
+      );
+      ixAccounts.forEach((ixAccount) => {
+        ixAccount.isSigner = false;
       });
+
+      const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
+        dstEid: peer.to.eid,
+        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(0, 0).addExecutorOrderedExecutionOption().toBytes()),
+        to: Array.from(peer.peerAddress),
+        composeMsg: null,
+        payInLzToken: false
+      };
+
+      const [peerAccount, _] = PublicKey.findProgramAddressSync(
+        [Buffer.from("Peer", "utf8"), accounts.otcConfig.toBytes(), new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4)],
+        programId
+      );
+
+      const [enforcedOptions, __] = PublicKey.findProgramAddressSync(
+        [Buffer.from("EnforcedOptions", "utf8"), accounts.otcConfig.toBuffer(), new anchor.BN(quoteParams.dstEid).toBuffer("be", 4)],
+        programId
+      );
+
+      await program.methods
+        .quote(quoteParams)
+        .accounts({
+          otcConfig: accounts.otcConfig,
+          peer: peerAccount,
+          enforcedOptions,
+        })
+        .remainingAccounts(ixAccounts)
+        .signers([wallet.payer])
+        .rpc({
+          commitment,
+        });
+    });
   });
+
+
 });
