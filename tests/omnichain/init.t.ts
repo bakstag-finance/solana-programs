@@ -19,6 +19,7 @@ import {
   Options,
   PacketPath,
   bytes32ToEthAddress,
+  addressToBytes32
 } from "@layerzerolabs/lz-v2-utilities";
 import { hexlify } from "ethers/lib/utils";
 
@@ -40,6 +41,9 @@ describe("Omnichain", () => {
   before(async () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
+
+    console.log("Solana Peer: ", hexlify(addressToBytes32(programId.toBase58())));
+    console.log("Arbitrum Peer: ", hexlify(peer.peerAddress));
   });
 
   describe("Initialize", () => {
@@ -251,8 +255,8 @@ describe("Omnichain", () => {
     });
   });
 
-  describe("Quote", () => {
-    it("should quote", async () => {
+  describe("Crosschain msg", () => {
+    it("should quote and send msg", async () => {
       const path: PacketPath = {
         dstEid: peer.to.eid,
         srcEid: 40168,
@@ -298,7 +302,7 @@ describe("Omnichain", () => {
         programId,
       );
 
-      const msgFee: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
+      const { nativeFee, lzTokenFee }: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
         .quote(quoteParams)
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -315,7 +319,33 @@ describe("Omnichain", () => {
         )
         .view();
 
-      console.log(msgFee.nativeFee.toNumber());
+      const sendParams: anchor.IdlTypes<OtcMarket>["SendParams"] = {
+        ...quoteParams,
+        nativeFee,
+        lzTokenFee,
+      };
+
+      const tx = await program.methods
+        .send(sendParams)
+        .accounts({
+          otcConfig: accounts.otcConfig,
+          peer: peerAccount,
+          enforcedOptions,
+        })
+        .remainingAccounts(
+          await endpoint.getSendIXAccountMetaForCPI(
+            connection,
+            wallet.publicKey,
+            path,
+            sendLib,
+          ),
+        )
+        .signers([wallet.payer])
+        .rpc({
+          commitment,
+        });
+
+      console.log(tx);
     });
   });
 });

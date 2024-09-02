@@ -86,6 +86,7 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
   },
   sendOptions: Options.newOptions()
     .addExecutorLzReceiveOption(65000, 0)
+    .addExecutorOrderedExecutionOption()
     .toBytes(),
   sendAndCallOptions: Options.newOptions()
     .addExecutorLzReceiveOption(65000, 0)
