@@ -1,10 +1,13 @@
 use anchor_lang::prelude::*;
 
+pub mod msg_codec;
 pub mod errors;
 pub mod events;
 mod instructions;
 pub mod state;
 
+
+use msg_codec::*;
 use errors::*;
 use events::*;
 use instructions::*;
@@ -12,7 +15,7 @@ use state::*;
 
 use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("3qAAAcRzN2j6ZJd7SvSndGLkeN9wbxzCnyBy1aciHsXP");
+declare_id!("7iNQcZtYqaFTmeAKhyiDXX4gGZLpDPd5gGr9fYV83cF3");
 
 #[program]
 pub mod otc_market {
@@ -71,7 +74,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteCreateOffer>,
         src_seller_address: [u8; 32],
         params: CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
+    ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params)
     }
 
