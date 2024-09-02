@@ -5,6 +5,7 @@ import {
   sendAndConfirmTransaction,
   Keypair,
   PublicKey,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
@@ -19,7 +20,7 @@ import {
   Options,
   PacketPath,
   bytes32ToEthAddress,
-  addressToBytes32
+  addressToBytes32,
 } from "@layerzerolabs/lz-v2-utilities";
 import { hexlify } from "ethers/lib/utils";
 
@@ -42,7 +43,10 @@ describe("Omnichain", () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
 
-    console.log("Solana Peer: ", hexlify(addressToBytes32(programId.toBase58())));
+    console.log(
+      "Solana Peer: ",
+      hexlify(addressToBytes32(programId.toBase58())),
+    );
     console.log("Arbitrum Peer: ", hexlify(peer.peerAddress));
   });
 
@@ -302,7 +306,10 @@ describe("Omnichain", () => {
         programId,
       );
 
-      const { nativeFee, lzTokenFee }: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
+      const {
+        nativeFee,
+        lzTokenFee,
+      }: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
         .quote(quoteParams)
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -325,7 +332,7 @@ describe("Omnichain", () => {
         lzTokenFee,
       };
 
-      const tx = await program.methods
+      const send = await program.methods
         .send(sendParams)
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -341,11 +348,21 @@ describe("Omnichain", () => {
           ),
         )
         .signers([wallet.payer])
-        .rpc({
-          commitment,
-        });
+        .transaction();
 
-      console.log(tx);
+      const tx = new Transaction().add(
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
+        send
+      );
+
+      console.log(await sendAndConfirmTransaction(
+        connection,
+        tx,
+        [wallet.payer],
+        {
+          commitment,
+        }
+      ));
     });
   });
 });
