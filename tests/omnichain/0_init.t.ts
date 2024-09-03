@@ -3,7 +3,6 @@ import * as anchor from "@coral-xyz/anchor";
 import {
   Transaction,
   sendAndConfirmTransaction,
-  Keypair,
   PublicKey,
   ComputeBudgetProgram,
 } from "@solana/web3.js";
@@ -14,6 +13,7 @@ import {
   EndpointProgram,
   OftTools,
   SetConfigType,
+  simulateTransaction,
   UlnProgram,
 } from "@layerzerolabs/lz-solana-sdk-v2";
 import {
@@ -24,8 +24,10 @@ import {
 } from "@layerzerolabs/lz-v2-utilities";
 import { hexlify } from "ethers/lib/utils";
 
-import { solanaToArbSepConfig as peer } from "./config";
+import { solanaToArbSepConfig as peer } from "./config/peer";
 import { Accounts, genAccounts } from "../helpers/helper";
+import { messagingFeeBeet } from "./utils/decode";
+
 
 describe("Omnichain", () => {
   const provider = anchor.AnchorProvider.env();
@@ -309,10 +311,7 @@ describe("Omnichain", () => {
         programId
       );
 
-      const {
-        nativeFee,
-        lzTokenFee,
-      }: anchor.IdlTypes<OtcMarket>["MessagingFee"] = await program.methods
+      const ix = await program.methods
         .quote(quoteParams)
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -327,7 +326,11 @@ describe("Omnichain", () => {
             sendLib
           )
         )
-        .view();
+        .instruction();
+
+      const response = await simulateTransaction(connection, [ix], programId, wallet.publicKey, commitment);
+    
+      const { nativeFee, lzTokenFee } = messagingFeeBeet.read(response, 0);
 
       const sendParams: anchor.IdlTypes<OtcMarket>["SendParams"] = {
         ...quoteParams,

@@ -1,6 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 import type { OmniPointHardhat } from "@layerzerolabs/toolbox-hardhat";
+
 import {
   DVN_CONFIG_SEED,
   EXECUTOR_CONFIG_SEED,
@@ -93,3 +94,4 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
     .addExecutorComposeOption(0, 50000, 0)
     .toBytes(),
 };
+

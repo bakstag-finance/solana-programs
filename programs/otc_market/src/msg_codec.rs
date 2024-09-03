@@ -1,11 +1,9 @@
-use crate::*;
-
 #[repr(u8)]
 enum Message {
     OfferCreated = 0,
     OfferAccepted = 1,
-    OfferCancelOrder = 2,
-    OfferCanceled = 3,
+    // OfferCancelOrder = 2,
+    // OfferCanceled = 3,
 }
 
 pub fn build_create_offer_payload(
