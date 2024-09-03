@@ -45,10 +45,13 @@ describe("Omnichain", () => {
 
     console.log(
       "Solana Peer: ",
-      hexlify(addressToBytes32(programId.toBase58())),
+      hexlify(addressToBytes32(programId.toBase58()))
     );
     console.log("Arbitrum Peer: ", hexlify(peer.peerAddress));
   });
+  // it("should gowno", async () => {
+  //   console.log("poyel");
+  // });
 
   describe("Initialize", () => {
     describe("Create accounts", () => {
@@ -66,8 +69,8 @@ describe("Omnichain", () => {
           .remainingAccounts(
             endpoint.getRegisterOappIxAccountMetaForCPI(
               wallet.publicKey,
-              accounts.otcConfig,
-            ),
+              accounts.otcConfig
+            )
           )
           .signers([wallet.payer])
           .rpc({
@@ -81,8 +84,8 @@ describe("Omnichain", () => {
             wallet.publicKey,
             peer.to.eid,
             accounts.otcConfig,
-            peer.peerAddress,
-          ),
+            peer.peerAddress
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -95,8 +98,8 @@ describe("Omnichain", () => {
           await OftTools.createInitSendLibraryIx(
             wallet.publicKey,
             accounts.otcConfig,
-            peer.to.eid,
-          ),
+            peer.to.eid
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -109,8 +112,8 @@ describe("Omnichain", () => {
           await OftTools.createInitReceiveLibraryIx(
             wallet.publicKey,
             accounts.otcConfig,
-            peer.to.eid,
-          ),
+            peer.to.eid
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -124,8 +127,8 @@ describe("Omnichain", () => {
             wallet.publicKey,
             accounts.otcConfig,
             peer.to.eid,
-            peer.sendLibrary,
-          ),
+            peer.sendLibrary
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -142,8 +145,8 @@ describe("Omnichain", () => {
             wallet.publicKey, // admin
             accounts.otcConfig, // oft config account
             peer.to.eid, // destination endpoint id
-            peer.peerAddress, // peer address
-          ),
+            peer.peerAddress // peer address
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -159,8 +162,8 @@ describe("Omnichain", () => {
             accounts.otcConfig, // your OFT Config
             peer.to.eid, // destination endpoint id for the options to apply to
             peer.sendOptions, // send options
-            peer.sendAndCallOptions,
-          ),
+            peer.sendAndCallOptions
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -176,8 +179,8 @@ describe("Omnichain", () => {
             wallet.publicKey,
             accounts.otcConfig,
             peer.sendLibrary,
-            peer.to.eid,
-          ),
+            peer.to.eid
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -192,8 +195,8 @@ describe("Omnichain", () => {
             accounts.otcConfig,
             peer.receiveLibraryConfig.receiveLibrary,
             peer.to.eid,
-            peer.receiveLibraryConfig.gracePeriod,
-          ),
+            peer.receiveLibraryConfig.gracePeriod
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -212,8 +215,8 @@ describe("Omnichain", () => {
             peer.to.eid,
             SetConfigType.EXECUTOR,
             peer.executorConfig,
-            peer.sendLibrary,
-          ),
+            peer.sendLibrary
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -230,8 +233,8 @@ describe("Omnichain", () => {
             peer.to.eid,
             SetConfigType.SEND_ULN,
             peer.sendUlnConfig,
-            peer.sendLibrary,
-          ),
+            peer.sendLibrary
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -248,8 +251,8 @@ describe("Omnichain", () => {
             peer.to.eid,
             SetConfigType.RECEIVE_ULN,
             peer.receiveUlnConfig,
-            peer.receiveLibraryConfig.receiveLibrary,
-          ),
+            peer.receiveLibraryConfig.receiveLibrary
+          )
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -273,15 +276,15 @@ describe("Omnichain", () => {
           await endpoint.getSendLibrary(
             connection,
             accounts.otcConfig,
-            peer.to.eid,
+            peer.to.eid
           )
-        ).programId,
+        ).programId
       );
 
       const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
         dstEid: peer.to.eid,
         options: Buffer.from(
-          Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes(),
+          Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes()
         ),
         to: Array.from(peer.peerAddress),
         composeMsg: null,
@@ -294,7 +297,7 @@ describe("Omnichain", () => {
           accounts.otcConfig.toBytes(),
           new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4),
         ],
-        programId,
+        programId
       );
 
       const [enforcedOptions, __] = PublicKey.findProgramAddressSync(
@@ -303,7 +306,7 @@ describe("Omnichain", () => {
           accounts.otcConfig.toBuffer(),
           new anchor.BN(quoteParams.dstEid).toBuffer("be", 4),
         ],
-        programId,
+        programId
       );
 
       const {
@@ -321,8 +324,8 @@ describe("Omnichain", () => {
             connection,
             wallet.publicKey,
             path,
-            sendLib,
-          ),
+            sendLib
+          )
         )
         .view();
 
@@ -344,8 +347,8 @@ describe("Omnichain", () => {
             connection,
             wallet.publicKey,
             path,
-            sendLib,
-          ),
+            sendLib
+          )
         )
         .signers([wallet.payer])
         .transaction();
@@ -355,14 +358,11 @@ describe("Omnichain", () => {
         send
       );
 
-      console.log(await sendAndConfirmTransaction(
-        connection,
-        tx,
-        [wallet.payer],
-        {
+      console.log(
+        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
           commitment,
-        }
-      ));
+        })
+      );
     });
   });
 });
