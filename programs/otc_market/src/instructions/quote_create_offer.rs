@@ -14,8 +14,6 @@ pub struct QuoteCreateOffer<'info> {
     )]
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
 
-    #[account(seeds = [Escrow::ESCROW_SEED], bump)]
-    pub escrow: Option<Account<'info, Escrow>>,
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 

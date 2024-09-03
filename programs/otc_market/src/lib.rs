@@ -15,7 +15,7 @@ use state::*;
 
 use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("7iNQcZtYqaFTmeAKhyiDXX4gGZLpDPd5gGr9fYV83cF3");
+declare_id!("DZXnDZGGs372fPuyKfMvWLrMxP98ACprZQgxUZDXQ9kG");
 
 #[program]
 pub mod otc_market {
@@ -91,7 +91,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteAcceptOffer>,
         dst_buyer_address: [u8; 32],
         params: AcceptOfferParams
-    ) -> Result<AcceptOfferReceipt> {
+    ) -> Result<(AcceptOfferReceipt, MessagingFee)> {
         QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params)
     }
 
