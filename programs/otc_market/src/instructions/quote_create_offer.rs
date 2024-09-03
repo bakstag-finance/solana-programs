@@ -19,7 +19,7 @@ pub struct QuoteCreateOffer<'info> {
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 
-    // omnichain part
+    /// NOTICE: required for crosschain offer
     #[account(
         seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &params.dst_eid.to_be_bytes()],
         bump = peer.bump
@@ -44,14 +44,17 @@ impl QuoteCreateOffer<'_> {
         params: &CreateOfferParams
     ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         let src_token_address = OtcConfig::get_token_address(ctx.accounts.src_token_mint.as_ref());
-        let src_decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
-            ctx.accounts.src_token_mint.as_ref()
-        );
 
-        let (src_amount_sd, src_amount_ld) = OtcConfig::remove_dust(
-            params.src_amount_ld,
-            src_decimal_conversion_rate
-        );
+        let (src_amount_sd, src_amount_ld): (u64, u64);
+        {
+            let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
+                ctx.accounts.src_token_mint.as_ref()
+            );
+            (src_amount_sd, src_amount_ld) = OtcConfig::remove_dust(
+                params.src_amount_ld,
+                decimal_conversion_rate
+            );
+        }
 
         // validate pricing
         require!(src_amount_sd != 0 && params.exchange_rate_sd != 0, OtcError::InvalidPricing);
@@ -69,9 +72,11 @@ impl QuoteCreateOffer<'_> {
         if params.dst_eid != OtcConfig::EID {
             // omnichain offer
             let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
-            let enforced_options = ctx.accounts.enforced_options.as_ref().expect(OtcConfig::ERROR_MSG);
+            let enforced_options = ctx.accounts.enforced_options
+                .as_ref()
+                .expect(OtcConfig::ERROR_MSG);
 
-            let message = build_create_offer_payload(
+            let payload = build_create_offer_payload(
                 &offer_id,
                 &src_seller_address,
                 &params.dst_seller_address,
@@ -90,26 +95,21 @@ impl QuoteCreateOffer<'_> {
                     sender: ctx.accounts.otc_config.key(),
                     dst_eid: params.dst_eid,
                     receiver: peer.address,
-                    message: message,
+                    message: payload,
                     pay_in_lz_token: false, //params.pay_in_lz_token,
                     options: enforced_options.get_enforced_options(&None),
                 }
             )?;
-        }else{
-            messaging_fee = MessagingFee {
-                native_fee: 0,
-                lz_token_fee: 0,
-            }
+        } else {
+            messaging_fee = MessagingFee::default();
         }
 
-        Ok(
-            (
+        Ok((
             CreateOfferReceipt {
                 offer_id,
                 src_amount_ld,
-            }, 
-            messaging_fee
-            )
-        )
+            },
+            messaging_fee,
+        ))
     }
 }
