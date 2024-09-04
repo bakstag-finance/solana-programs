@@ -1,10 +1,13 @@
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey } from "@solana/web3.js";
 
-import type { OmniPointHardhat } from '@layerzerolabs/toolbox-hardhat';
+import type { OmniPointHardhat } from "@layerzerolabs/toolbox-hardhat";
 
-import { DVN_CONFIG_SEED, EXECUTOR_CONFIG_SEED } from '@layerzerolabs/lz-solana-sdk-v2';
-import { addressToBytes32, Options } from '@layerzerolabs/lz-v2-utilities';
-import { EndpointId } from '@layerzerolabs/lz-definitions';
+import {
+  DVN_CONFIG_SEED,
+  EXECUTOR_CONFIG_SEED,
+} from "@layerzerolabs/lz-solana-sdk-v2";
+import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
+import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 type SolanaPeerConfig = {
   to: OmniPointHardhat;
@@ -39,17 +42,20 @@ type SolanaPeerConfig = {
   sendAndCallOptions: Uint8Array;
 };
 
-const uln = new PublicKey('7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH');
-const executor = new PublicKey('6doghB248px58JSSwG4qejQ46kFMW4AMj7vzJnWZHNZn');
-const lzDVN = new PublicKey('HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW');
-const lzDVNConfigAccount = PublicKey.findProgramAddressSync([Buffer.from(DVN_CONFIG_SEED, 'utf8')], lzDVN)[0];
+const uln = new PublicKey("7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH");
+const executor = new PublicKey("6doghB248px58JSSwG4qejQ46kFMW4AMj7vzJnWZHNZn");
+const lzDVN = new PublicKey("HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW");
+const lzDVNConfigAccount = PublicKey.findProgramAddressSync(
+  [Buffer.from(DVN_CONFIG_SEED, "utf8")],
+  lzDVN,
+)[0];
 
 export const solanaToArbSepConfig: SolanaPeerConfig = {
   // Arbitrum Sepolia Config
   to: {
     eid: EndpointId.ARBSEP_V2_TESTNET,
   },
-  peerAddress: addressToBytes32('0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd'),
+  peerAddress: addressToBytes32("0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd"),
   sendLibrary: uln,
   receiveLibraryConfig: {
     receiveLibrary: uln,
@@ -73,10 +79,16 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
     optionalDvns: [],
   },
   executorConfig: {
-    executor: PublicKey.findProgramAddressSync([Buffer.from(EXECUTOR_CONFIG_SEED, 'utf8')], executor)[0],
+    executor: PublicKey.findProgramAddressSync(
+      [Buffer.from(EXECUTOR_CONFIG_SEED, "utf8")],
+      executor,
+    )[0],
     maxMessageSize: 10000,
   },
-  sendOptions: Options.newOptions().addExecutorLzReceiveOption(65000, 0).addExecutorOrderedExecutionOption().toBytes(),
+  sendOptions: Options.newOptions()
+    .addExecutorLzReceiveOption(65000, 0)
+    .addExecutorOrderedExecutionOption()
+    .toBytes(),
   sendAndCallOptions: Options.newOptions()
     .addExecutorLzReceiveOption(65000, 0)
     .addExecutorComposeOption(0, 50000, 0)

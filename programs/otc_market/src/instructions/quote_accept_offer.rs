@@ -3,7 +3,7 @@ use anchor_spl::token_interface::{ Mint, TokenInterface };
 use oapp::endpoint::{ instructions::QuoteParams as EndpointQuoteParams, MessagingFee };
 
 #[derive(Accounts)]
-#[instruction(params: AcceptOfferParams)]
+#[instruction(dst_buyer_address: [u8; 32], params: AcceptOfferParams, pay_in_lz_token: bool)]
 pub struct QuoteAcceptOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
