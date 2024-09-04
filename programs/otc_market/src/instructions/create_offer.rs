@@ -53,7 +53,7 @@ pub struct CreateOffer<'info> {
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program
     )]
-    pub escrow_ata: Option<InterfaceAccount<'info, TokenAccount>>,
+    pub src_escrow_ata: Option<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
     pub escrow: Account<'info, Escrow>,
@@ -124,7 +124,7 @@ impl CreateOffer<'_> {
             ctx.accounts.token_program.as_ref(),
             ctx.accounts.src_seller_ata.as_ref(),
             ctx.accounts.src_token_mint.as_ref(),
-            ctx.accounts.escrow_ata.as_ref(),
+            ctx.accounts.src_escrow_ata.as_ref(),
             None
         )?;
 
