@@ -33,13 +33,11 @@ describe('Omnichain', () => {
   before(async () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
-
-    console.log('Solana Peer: ', hexlify(addressToBytes32(programId.toBase58())));
-    console.log('Arbitrum Peer: ', hexlify(peer.peerAddress));
   });
-  // it("should gowno", async () => {
-  //   console.log("poyel");
-  // });
+
+  it('should log solana peer', async () => {
+    console.log(hexlify(accounts.otcConfig.toBytes()));
+  });
 
   describe('Initialize', () => {
     describe('Create accounts', () => {

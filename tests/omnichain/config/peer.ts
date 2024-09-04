@@ -49,7 +49,7 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
   to: {
     eid: EndpointId.ARBSEP_V2_TESTNET,
   },
-  peerAddress: addressToBytes32('0x010425EC6E7beC3A92c8220cE2237497AD762E63'),
+  peerAddress: addressToBytes32('0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd'),
   sendLibrary: uln,
   receiveLibraryConfig: {
     receiveLibrary: uln,
