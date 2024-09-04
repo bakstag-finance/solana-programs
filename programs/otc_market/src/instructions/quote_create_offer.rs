@@ -3,7 +3,7 @@ use anchor_spl::token_interface::{ Mint, TokenInterface };
 use oapp::endpoint::{ instructions::QuoteParams as EndpointQuoteParams, MessagingFee };
 
 #[derive(Accounts)]
-#[instruction(src_seller_address: [u8; 32], params: CreateOfferParams)]
+#[instruction(params: CreateOfferParams)]
 pub struct QuoteCreateOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
@@ -13,7 +13,6 @@ pub struct QuoteCreateOffer<'info> {
         constraint = src_token_mint.decimals >= OtcConfig::SHARED_DECIMALS @ OtcError::InvalidLocalDecimals
     )]
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
-
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 
@@ -39,7 +38,8 @@ impl QuoteCreateOffer<'_> {
     pub fn apply(
         ctx: &mut Context<QuoteCreateOffer>,
         src_seller_address: &[u8; 32],
-        params: &CreateOfferParams
+        params: &CreateOfferParams,
+        pay_in_lz_token: bool
     ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         let src_token_address = OtcConfig::get_token_address(ctx.accounts.src_token_mint.as_ref());
 
@@ -68,7 +68,7 @@ impl QuoteCreateOffer<'_> {
         let messaging_fee: MessagingFee;
 
         if params.dst_eid != OtcConfig::EID {
-            // omnichain offer
+            // crosschain
             let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
             let enforced_options = ctx.accounts.enforced_options
                 .as_ref()
@@ -94,11 +94,12 @@ impl QuoteCreateOffer<'_> {
                     dst_eid: params.dst_eid,
                     receiver: peer.address,
                     message: payload,
-                    pay_in_lz_token: false, //params.pay_in_lz_token,
+                    pay_in_lz_token,
                     options: enforced_options.get_enforced_options(&None),
                 }
             )?;
         } else {
+            // monochain
             messaging_fee = MessagingFee::default();
         }
 

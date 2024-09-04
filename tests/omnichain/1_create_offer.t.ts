@@ -86,7 +86,7 @@ describe("Create Offer", () => {
     const srcSellerAddress = Array.from(wallet.publicKey.toBytes());
 
     const ix = await program.methods
-      .quoteCreateOffer(srcSellerAddress, createOfferParams)
+      .quoteCreateOffer(srcSellerAddress, createOfferParams, false)
       .accounts({
         otcConfig: accounts.otcConfig,
         srcTokenMint: null,

@@ -6,7 +6,6 @@ pub mod events;
 mod instructions;
 pub mod state;
 
-
 use msg_codec::*;
 use errors::*;
 use events::*;
@@ -15,7 +14,7 @@ use state::*;
 
 use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("DZXnDZGGs372fPuyKfMvWLrMxP98ACprZQgxUZDXQ9kG");
+declare_id!("7GWXYB7a3Ky5pohnPGiiXshvXWsdb3ZC95qTwkU6NYP8");
 
 #[program]
 pub mod otc_market {
@@ -73,9 +72,10 @@ pub mod otc_market {
     pub fn quote_create_offer(
         mut ctx: Context<QuoteCreateOffer>,
         src_seller_address: [u8; 32],
-        params: CreateOfferParams
+        params: CreateOfferParams,
+        pay_in_lz_token: bool
     ) -> Result<(CreateOfferReceipt, MessagingFee)> {
-        QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params)
+        QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params, pay_in_lz_token)
     }
 
     /// see [create_offer]
@@ -90,9 +90,10 @@ pub mod otc_market {
     pub fn quote_accept_offer(
         mut ctx: Context<QuoteAcceptOffer>,
         dst_buyer_address: [u8; 32],
-        params: AcceptOfferParams
+        params: AcceptOfferParams,
+        pay_in_lz_token: bool
     ) -> Result<(AcceptOfferReceipt, MessagingFee)> {
-        QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params)
+        QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params, pay_in_lz_token)
     }
 
     /// see [accept_offer]
