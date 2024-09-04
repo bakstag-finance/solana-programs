@@ -1,13 +1,8 @@
-import * as anchor from "@coral-xyz/anchor";
+import * as anchor from '@coral-xyz/anchor';
 
-import {
-  Transaction,
-  sendAndConfirmTransaction,
-  PublicKey,
-  ComputeBudgetProgram,
-} from "@solana/web3.js";
-import { Program, Wallet } from "@coral-xyz/anchor";
-import { OtcMarket } from "../../target/types/otc_market";
+import { Transaction, sendAndConfirmTransaction, PublicKey, ComputeBudgetProgram } from '@solana/web3.js';
+import { Program, Wallet } from '@coral-xyz/anchor';
+import { OtcMarket } from '../../target/types/otc_market';
 
 import {
   EndpointProgram,
@@ -15,28 +10,22 @@ import {
   SetConfigType,
   simulateTransaction,
   UlnProgram,
-} from "@layerzerolabs/lz-solana-sdk-v2";
-import {
-  Options,
-  PacketPath,
-  bytes32ToEthAddress,
-  addressToBytes32,
-} from "@layerzerolabs/lz-v2-utilities";
-import { hexlify } from "ethers/lib/utils";
+} from '@layerzerolabs/lz-solana-sdk-v2';
+import { Options, PacketPath, bytes32ToEthAddress, addressToBytes32 } from '@layerzerolabs/lz-v2-utilities';
+import { hexlify } from 'ethers/lib/utils';
 
-import { solanaToArbSepConfig as peer } from "./config/peer";
-import { Accounts, genAccounts } from "../helpers/helper";
-import { messagingFeeBeet } from "./utils/decode";
+import { solanaToArbSepConfig as peer } from './config/peer';
+import { Accounts, genAccounts } from '../helpers/helper';
+import { messagingFeeBeet } from './utils/decode';
 
-
-describe("Omnichain", () => {
+describe('Omnichain', () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.OtcMarket as Program<OtcMarket>;
   const programId = program.programId;
   const connection = provider.connection;
   const wallet = provider.wallet as Wallet;
-  const commitment = "confirmed";
+  const commitment = 'confirmed';
 
   let accounts: Accounts;
   let endpoint: EndpointProgram.Endpoint;
@@ -45,19 +34,16 @@ describe("Omnichain", () => {
     accounts = await genAccounts(connection, program.programId, wallet.payer);
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
 
-    console.log(
-      "Solana Peer: ",
-      hexlify(addressToBytes32(programId.toBase58()))
-    );
-    console.log("Arbitrum Peer: ", hexlify(peer.peerAddress));
+    console.log('Solana Peer: ', hexlify(addressToBytes32(programId.toBase58())));
+    console.log('Arbitrum Peer: ', hexlify(peer.peerAddress));
   });
   // it("should gowno", async () => {
   //   console.log("poyel");
   // });
 
-  describe("Initialize", () => {
-    describe("Create accounts", () => {
-      it("1. should init otc", async () => {
+  describe('Initialize', () => {
+    describe('Create accounts', () => {
+      it('1. should init otc', async () => {
         await program.methods
           .initialize({
             endpointProgram: accounts.endpoint,
@@ -68,26 +54,16 @@ describe("Omnichain", () => {
             otcConfig: accounts.otcConfig,
             escrow: accounts.escrow,
           })
-          .remainingAccounts(
-            endpoint.getRegisterOappIxAccountMetaForCPI(
-              wallet.publicKey,
-              accounts.otcConfig
-            )
-          )
+          .remainingAccounts(endpoint.getRegisterOappIxAccountMetaForCPI(wallet.publicKey, accounts.otcConfig))
           .signers([wallet.payer])
           .rpc({
             commitment,
           });
       });
 
-      it("2. should init peer account", async () => {
+      it('2. should init peer account', async () => {
         const tx = new Transaction().add(
-          await OftTools.createInitNonceIx(
-            wallet.publicKey,
-            peer.to.eid,
-            accounts.otcConfig,
-            peer.peerAddress
-          )
+          await OftTools.createInitNonceIx(wallet.publicKey, peer.to.eid, accounts.otcConfig, peer.peerAddress)
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -95,13 +71,9 @@ describe("Omnichain", () => {
         });
       });
 
-      it("3. should init send library", async () => {
+      it('3. should init send library', async () => {
         const tx = new Transaction().add(
-          await OftTools.createInitSendLibraryIx(
-            wallet.publicKey,
-            accounts.otcConfig,
-            peer.to.eid
-          )
+          await OftTools.createInitSendLibraryIx(wallet.publicKey, accounts.otcConfig, peer.to.eid)
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -109,13 +81,9 @@ describe("Omnichain", () => {
         });
       });
 
-      it("4. should init receive library", async () => {
+      it('4. should init receive library', async () => {
         const tx = new Transaction().add(
-          await OftTools.createInitReceiveLibraryIx(
-            wallet.publicKey,
-            accounts.otcConfig,
-            peer.to.eid
-          )
+          await OftTools.createInitReceiveLibraryIx(wallet.publicKey, accounts.otcConfig, peer.to.eid)
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -123,14 +91,9 @@ describe("Omnichain", () => {
         });
       });
 
-      it("5. should init oapp config", async () => {
+      it('5. should init oapp config', async () => {
         const tx = new Transaction().add(
-          await OftTools.createInitConfigIx(
-            wallet.publicKey,
-            accounts.otcConfig,
-            peer.to.eid,
-            peer.sendLibrary
-          )
+          await OftTools.createInitConfigIx(wallet.publicKey, accounts.otcConfig, peer.to.eid, peer.sendLibrary)
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -139,8 +102,8 @@ describe("Omnichain", () => {
       });
     });
 
-    describe("Set Peer, Enforced Options", () => {
-      it("6. should set peer", async () => {
+    describe('Set Peer, Enforced Options', () => {
+      it('6. should set peer', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetPeerIx(
             programId, // Your OFT Program ID
@@ -156,7 +119,7 @@ describe("Omnichain", () => {
         });
       });
 
-      it("7. should set enforced options", async () => {
+      it('7. should set enforced options', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetEnforcedOptionsIx(
             programId,
@@ -174,15 +137,10 @@ describe("Omnichain", () => {
       });
     });
 
-    describe("Set Libraries", () => {
-      it("8. should set send library", async () => {
+    describe('Set Libraries', () => {
+      it('8. should set send library', async () => {
         const tx = new Transaction().add(
-          await OftTools.createSetSendLibraryIx(
-            wallet.publicKey,
-            accounts.otcConfig,
-            peer.sendLibrary,
-            peer.to.eid
-          )
+          await OftTools.createSetSendLibraryIx(wallet.publicKey, accounts.otcConfig, peer.sendLibrary, peer.to.eid)
         );
 
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
@@ -190,7 +148,7 @@ describe("Omnichain", () => {
         });
       });
 
-      it("9. should set receive library", async () => {
+      it('9. should set receive library', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetReceiveLibraryIx(
             wallet.publicKey,
@@ -207,8 +165,8 @@ describe("Omnichain", () => {
       });
     });
 
-    describe("Set Options", () => {
-      it("10. should set executor options", async () => {
+    describe('Set Options', () => {
+      it('10. should set executor options', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetConfigIx(
             connection,
@@ -226,7 +184,7 @@ describe("Omnichain", () => {
         });
       });
 
-      it("11. should set send options", async () => {
+      it('11. should set send options', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetConfigIx(
             connection,
@@ -244,7 +202,7 @@ describe("Omnichain", () => {
         });
       });
 
-      it("12. should set receive options", async () => {
+      it('12. should set receive options', async () => {
         const tx = new Transaction().add(
           await OftTools.createSetConfigIx(
             connection,
@@ -264,8 +222,8 @@ describe("Omnichain", () => {
     });
   });
 
-  describe("Crosschain msg", () => {
-    it("should quote and send msg", async () => {
+  describe('Crosschain msg', () => {
+    it('should quote and send msg', async () => {
       const path: PacketPath = {
         dstEid: peer.to.eid,
         srcEid: 40168,
@@ -274,20 +232,12 @@ describe("Omnichain", () => {
       };
 
       const sendLib = new UlnProgram.Uln(
-        (
-          await endpoint.getSendLibrary(
-            connection,
-            accounts.otcConfig,
-            peer.to.eid
-          )
-        ).programId
+        (await endpoint.getSendLibrary(connection, accounts.otcConfig, peer.to.eid)).programId
       );
 
-      const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
+      const quoteParams: anchor.IdlTypes<OtcMarket>['QuoteParams'] = {
         dstEid: peer.to.eid,
-        options: Buffer.from(
-          Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes()
-        ),
+        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes()),
         to: Array.from(peer.peerAddress),
         composeMsg: null,
         payInLzToken: false,
@@ -295,18 +245,18 @@ describe("Omnichain", () => {
 
       const [peerAccount, _] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("Peer", "utf8"),
+          Buffer.from('Peer', 'utf8'),
           accounts.otcConfig.toBytes(),
-          new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4),
+          new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, 'be', 4),
         ],
         programId
       );
 
       const [enforcedOptions, __] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("EnforcedOptions", "utf8"),
+          Buffer.from('EnforcedOptions', 'utf8'),
           accounts.otcConfig.toBuffer(),
-          new anchor.BN(quoteParams.dstEid).toBuffer("be", 4),
+          new anchor.BN(quoteParams.dstEid).toBuffer('be', 4),
         ],
         programId
       );
@@ -318,21 +268,14 @@ describe("Omnichain", () => {
           peer: peerAccount,
           enforcedOptions,
         })
-        .remainingAccounts(
-          await endpoint.getQuoteIXAccountMetaForCPI(
-            connection,
-            wallet.publicKey,
-            path,
-            sendLib
-          )
-        )
+        .remainingAccounts(await endpoint.getQuoteIXAccountMetaForCPI(connection, wallet.publicKey, path, sendLib))
         .instruction();
 
       const response = await simulateTransaction(connection, [ix], programId, wallet.publicKey, commitment);
-    
+
       const { nativeFee, lzTokenFee } = messagingFeeBeet.read(response, 0);
 
-      const sendParams: anchor.IdlTypes<OtcMarket>["SendParams"] = {
+      const sendParams: anchor.IdlTypes<OtcMarket>['SendParams'] = {
         ...quoteParams,
         nativeFee,
         lzTokenFee,
@@ -345,21 +288,11 @@ describe("Omnichain", () => {
           peer: peerAccount,
           enforcedOptions,
         })
-        .remainingAccounts(
-          await endpoint.getSendIXAccountMetaForCPI(
-            connection,
-            wallet.publicKey,
-            path,
-            sendLib
-          )
-        )
+        .remainingAccounts(await endpoint.getSendIXAccountMetaForCPI(connection, wallet.publicKey, path, sendLib))
         .signers([wallet.payer])
         .transaction();
 
-      const tx = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
-        send
-      );
+      const tx = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }), send);
 
       console.log(
         await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
