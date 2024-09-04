@@ -43,51 +43,6 @@ export class Accounts {
   endpointSetting: PublicKey;
 }
 
-export async function genAccounts(
-  connection: Connection,
-  programId: PublicKey,
-  payer: Keypair,
-): Promise<any> {
-  const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
-
-  const [endpointSetting, _____] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Endpoint", "utf8")],
-    programId,
-  );
-
-  const [otcConfig, ____] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Otc", "utf8")],
-    programId,
-  );
-
-  const [escrow, ___] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Escrow", "utf8")],
-    programId,
-  );
-
-  const endpoint = new PublicKey(ENDPOINT_PROGRAM_ID);
-
-  const [oappRegistry, _] = PublicKey.findProgramAddressSync(
-    [Buffer.from("OApp", "utf8"), otcConfig.toBytes()],
-    endpoint,
-  );
-
-  const [eventAuthority, __] = PublicKey.findProgramAddressSync(
-    [Buffer.from("__event_authority", "utf8")],
-    endpoint,
-  );
-
-  return {
-    otcConfig,
-    escrow,
-    treasury,
-    endpoint,
-    oappRegistry,
-    eventAuthority,
-    endpointSetting,
-  };
-}
-
 export async function generateAccounts(
   connection: Connection,
   programId: PublicKey,

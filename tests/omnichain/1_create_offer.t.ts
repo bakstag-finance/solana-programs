@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
@@ -16,10 +16,15 @@ import {
 import { hexlify } from "ethers/lib/utils";
 
 import { solanaToArbSepConfig as peer } from "./config/peer";
-import { Accounts, genAccounts } from "../helpers/helper";
 import { CreateOfferParams } from "../helpers/create_offer";
-import { CREATE_OFFER_AMOUNTS, EXCHANGE_RATE_SD } from "../helpers/constants";
+import {
+  CREATE_OFFER_AMOUNTS,
+  ENDPOINT_PROGRAM_ID,
+  EXCHANGE_RATE_SD,
+  TREASURY_SECRET_KEY,
+} from "../helpers/constants";
 import { quoteCreateOfferBeet } from "./utils/decode";
+import { OtcPdaDeriver } from "./utils/otc_pda_deriver";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -30,11 +35,24 @@ describe("Create Offer", () => {
   const wallet = provider.wallet as Wallet;
   const commitment = "confirmed";
 
-  let accounts: Accounts;
+  let accounts: {
+    otcConfig: PublicKey;
+    endpoint: PublicKey;
+    treasury: PublicKey;
+    escrow: PublicKey;
+  };
   let endpoint: EndpointProgram.Endpoint;
 
   before(async () => {
-    accounts = await genAccounts(connection, program.programId, wallet.payer);
+    const otcPdaDeriver = new OtcPdaDeriver(programId);
+
+    accounts = {
+      otcConfig: otcPdaDeriver.config(),
+      endpoint: new PublicKey(ENDPOINT_PROGRAM_ID),
+      treasury: Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey,
+      escrow: otcPdaDeriver.escrow(),
+    };
+
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
   });
 

@@ -5,6 +5,7 @@ import {
   sendAndConfirmTransaction,
   PublicKey,
   ComputeBudgetProgram,
+  Keypair,
 } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
@@ -20,13 +21,13 @@ import {
   Options,
   PacketPath,
   bytes32ToEthAddress,
-  addressToBytes32,
 } from "@layerzerolabs/lz-v2-utilities";
 import { hexlify } from "ethers/lib/utils";
 
 import { solanaToArbSepConfig as peer } from "./config/peer";
-import { Accounts, genAccounts } from "../helpers/helper";
 import { messagingFeeBeet } from "./utils/decode";
+import { OtcPdaDeriver } from "./utils/otc_pda_deriver";
+import { ENDPOINT_PROGRAM_ID, TREASURY_SECRET_KEY } from "./config/constants";
 
 describe("Omnichain", () => {
   const provider = anchor.AnchorProvider.env();
@@ -37,11 +38,24 @@ describe("Omnichain", () => {
   const wallet = provider.wallet as Wallet;
   const commitment = "confirmed";
 
-  let accounts: Accounts;
+  let accounts: {
+    otcConfig: PublicKey;
+    endpoint: PublicKey;
+    treasury: PublicKey;
+    escrow: PublicKey;
+  };
   let endpoint: EndpointProgram.Endpoint;
 
   before(async () => {
-    accounts = await genAccounts(connection, program.programId, wallet.payer);
+    const otcPdaDeriver = new OtcPdaDeriver(programId);
+
+    accounts = {
+      otcConfig: otcPdaDeriver.config(),
+      endpoint: new PublicKey(ENDPOINT_PROGRAM_ID),
+      treasury: Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey,
+      escrow: otcPdaDeriver.escrow(),
+    };
+
     endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
   });
 
