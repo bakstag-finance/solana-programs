@@ -1,3 +1,4 @@
+import * as anchor from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
 export class OtcPdaDeriver {
@@ -20,22 +21,26 @@ export class OtcPdaDeriver {
       this.programId,
     )[0];
   }
+
+  peer(dstEid: number): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("Peer", "utf8"),
+        this.config().toBytes(),
+        new anchor.BN(dstEid).toArrayLike(Buffer, "be", 4),
+      ],
+      this.programId,
+    )[0];
+  }
+
+  enforcedOptions(dstEid: number): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("EnforcedOptions", "utf8"),
+        this.config().toBytes(),
+        new anchor.BN(dstEid).toArrayLike(Buffer, "be", 4),
+      ],
+      this.programId,
+    )[0];
+  }
 }
-
-// export function deriveOtcAccounts(programId: PublicKey): {} {
-//   const treasury = Keypair.generate().publicKey;
-
-//   const [escrow, ___] = PublicKey.findProgramAddressSync(
-//     [Buffer.from("Escrow", "utf8")],
-//     programId,
-//   );
-
-//   const endpoint = new PublicKey(ENDPOINT_PROGRAM_ID);
-
-//   return {
-//     otcConfig,
-//     escrow,
-//     treasury,
-//     endpoint,
-//   };
-// }

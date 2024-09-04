@@ -12,6 +12,7 @@ import { OtcMarket } from "../../target/types/otc_market";
 
 import {
   EndpointProgram,
+  OftPDADeriver,
   OftTools,
   SetConfigType,
   simulateTransaction,
@@ -45,10 +46,9 @@ describe("Omnichain", () => {
     escrow: PublicKey;
   };
   let endpoint: EndpointProgram.Endpoint;
+  const otcPdaDeriver = new OtcPdaDeriver(programId);
 
   before(async () => {
-    const otcPdaDeriver = new OtcPdaDeriver(programId);
-
     accounts = {
       otcConfig: otcPdaDeriver.config(),
       endpoint: new PublicKey(ENDPOINT_PROGRAM_ID),
@@ -301,23 +301,8 @@ describe("Omnichain", () => {
         payInLzToken: false,
       };
 
-      const [peerAccount, _] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("Peer", "utf8"),
-          accounts.otcConfig.toBytes(),
-          new anchor.BN(quoteParams.dstEid).toArrayLike(Buffer, "be", 4),
-        ],
-        programId,
-      );
-
-      const [enforcedOptions, __] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("EnforcedOptions", "utf8"),
-          accounts.otcConfig.toBuffer(),
-          new anchor.BN(quoteParams.dstEid).toBuffer("be", 4),
-        ],
-        programId,
-      );
+      const peerAccount = otcPdaDeriver.peer(quoteParams.dstEid);
+      const enforcedOptions = otcPdaDeriver.enforcedOptions(quoteParams.dstEid);
 
       const ix = await program.methods
         .quote(quoteParams)
