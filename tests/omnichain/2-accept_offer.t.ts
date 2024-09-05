@@ -1,18 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
-
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
-
 import { simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
-
-import {
-  CREATE_OFFER_AMOUNTS,
-  EXCHANGE_RATE_SD,
-  SRC_EID,
-} from "./config/definitions";
 import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
+import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { Amounts, ExchangeRates } from "./config/definitions";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -35,10 +29,10 @@ describe("Accept Offer", () => {
 
     const params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"] = {
       dstSellerAddress: Array.from(seller.publicKey.toBytes()),
-      dstEid: SRC_EID,
+      dstEid: EndpointId.SOLANA_V2_TESTNET,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-      srcAmountLd: new anchor.BN(CREATE_OFFER_AMOUNTS.srcAmountLdNative),
-      exchangeRateSd: new anchor.BN(EXCHANGE_RATE_SD),
+      srcAmountLd: new anchor.BN(Amounts.SOL),
+      exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
     accounts = {

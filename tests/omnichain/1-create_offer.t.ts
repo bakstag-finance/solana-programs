@@ -1,9 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
-
 import { PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
-
 import {
   EndpointProgram,
   UlnProgram,
@@ -14,20 +12,18 @@ import {
   bytes32ToEthAddress,
 } from "@layerzerolabs/lz-v2-utilities";
 import { hexlify } from "ethers/lib/utils";
-
 import { solanaToArbSepConfig as peer } from "./config/peer";
 import { CreateOfferParams } from "../helpers/create_offer";
-import {
-  CREATE_OFFER_AMOUNTS,
-  ENDPOINT_PROGRAM_ID,
-  EXCHANGE_RATE_SD,
-  SRC_EID,
-} from "../helpers/constants";
 import { quoteCreateOfferBeet } from "./utils/beet-decoder";
-import { OtcPdaDeriver } from "./utils/otc-pda-deriver";
 import { assert } from "chai";
 import { OtcTools } from "./utils/otc-tools";
 import { Otc } from "./utils/otc";
+import {
+  Amounts,
+  ENDPOINT_PROGRAM_ID,
+  ExchangeRates,
+} from "./config/definitions";
+import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -75,8 +71,8 @@ describe("Create Offer", () => {
       dstSellerAddress: Array.from(wallet.publicKey.toBytes()),
       dstEid: peer.to.eid,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-      srcAmountLd: new anchor.BN(CREATE_OFFER_AMOUNTS.srcAmountLdNative),
-      exchangeRateSd: new anchor.BN(EXCHANGE_RATE_SD),
+      srcAmountLd: new anchor.BN(Amounts.SOL),
+      exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
     const peerAccount = otc.deriver.peer(params.dstEid);
@@ -115,7 +111,7 @@ describe("Create Offer", () => {
     const offer = await OtcTools.getOfferFromParams(
       program,
       srcSellerAddress,
-      SRC_EID,
+      EndpointId.SOLANA_V2_TESTNET,
       params.dstEid,
       Array.from(PublicKey.default.toBytes()),
       params.dstTokenAddress,

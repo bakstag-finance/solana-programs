@@ -4,9 +4,9 @@ import { OtcMarket } from "../../../target/types/otc_market";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import transferSol from "./transfer";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
-import { SRC_EID } from "../config/definitions";
 import { OtcPdaDeriver } from "./otc-pda-deriver";
 import { OtcTools } from "./otc-tools";
+import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -37,7 +37,7 @@ export class Otc {
     const offer = await OtcTools.getOfferFromParams(
       this.program,
       Array.from(seller.publicKey.toBytes()),
-      SRC_EID,
+      EndpointId.SOLANA_V2_TESTNET,
       params.dstEid,
       srcTokenMint
         ? Array.from(srcTokenMint.toBytes())
