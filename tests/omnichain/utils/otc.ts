@@ -16,7 +16,7 @@ export class OtcTools {
     srcTokenAddress: number[],
     dstTokenAddress: number[],
     exchangeRateSd: anchor.BN,
-  ): Promise<PublicKey> {
+  ): Promise<[PublicKey, number[]]> {
     const offerId: Uint8Array = await program.methods
       .hashOffer(
         srcSellerAddress,
@@ -28,60 +28,41 @@ export class OtcTools {
       )
       .view();
 
-    return PublicKey.findProgramAddressSync([offerId], program.programId)[0];
+    return [
+      PublicKey.findProgramAddressSync([offerId], program.programId)[0],
+      Array.from(offerId),
+    ];
   }
 }
 
 export class Otc {
-  programId: PublicKey;
+  program: Program<OtcMarket>;
+  connection: Connection;
+  payer: Keypair;
+
   deriver: OtcPdaDeriver;
 
-  constructor(programId: PublicKey) {
-    this.programId = programId;
+  constructor(
+    program: Program<OtcMarket>,
+    connection: Connection,
+    payer: Keypair,
+  ) {
+    this.program = program;
+    this.connection = connection;
+    this.payer = payer;
+
+    this.deriver = new OtcPdaDeriver(program.programId);
   }
 
   async createOffer(
-    program: Program<OtcMarket>,
-    connection: Connection,
     params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"],
-    payer: Keypair,
     seller: Keypair,
-    otcConfig: PublicKey,
-    srcTokenMint?: PublicKey, // required for src spl token
-  ): Promise<PublicKey> {
-    const srcSellerAta = srcTokenMint
-      ? (
-          await getOrCreateAssociatedTokenAccount(
-            connection,
-            payer,
-            srcTokenMint,
-            seller.publicKey,
-          )
-        ).address
-      : undefined;
-
-    if (!srcTokenMint) {
-      // src sol token
-      await transferSol(
-        connection,
-        payer,
-        seller.publicKey,
-        params.srcAmountLd.toNumber(),
-      );
-    } else {
-      // src spl token
-      await mintTo(
-        connection,
-        payer,
-        srcTokenMint,
-        srcSellerAta,
-        payer.publicKey,
-        params.srcAmountLd.toNumber(),
-      );
-    }
-
+    srcTokenMint: PublicKey | null = null, // required for src spl token
+  ): Promise<[PublicKey, number[]]> {
+    const otcConfig = this.deriver.config();
+    const escrow = this.deriver.escrow();
     const offer = await OtcTools.getOfferFromParams(
-      program,
+      this.program,
       Array.from(seller.publicKey.toBytes()),
       SRC_EID,
       params.dstEid,
@@ -92,29 +73,58 @@ export class Otc {
       params.exchangeRateSd,
     );
 
-    const otcPdaDeriver = new OtcPdaDeriver(program.programId);
-    const escrow = otcPdaDeriver.escrow();
     const srcEscrowAta = srcTokenMint
       ? (
           await getOrCreateAssociatedTokenAccount(
-            connection,
-            payer,
+            this.connection,
+            seller,
+            srcTokenMint,
+            seller.publicKey,
+            true,
+          )
+        ).address
+      : null;
+    const srcSellerAta = srcTokenMint
+      ? (
+          await getOrCreateAssociatedTokenAccount(
+            this.connection,
+            seller,
             srcTokenMint,
             seller.publicKey,
           )
         ).address
-      : undefined;
+      : null;
 
-    await program.methods
+    if (!srcTokenMint) {
+      // src sol token
+      await transferSol(
+        this.connection,
+        this.payer,
+        seller.publicKey,
+        params.srcAmountLd.toNumber() * 2,
+      );
+    } else {
+      // src spl token
+      await mintTo(
+        this.connection,
+        seller,
+        srcTokenMint,
+        srcSellerAta,
+        seller.publicKey,
+        params.srcAmountLd.toNumber(),
+      );
+    }
+
+    await this.program.methods
       .createOffer(params)
       .accounts({
         seller: seller.publicKey,
-        offer,
+        offer: offer[0],
         otcConfig,
-        srcTokenMint,
-        srcSellerAta,
-        srcEscrowAta,
         escrow,
+        srcTokenMint, // required for src spl token
+        srcSellerAta, // required for src spl token
+        srcEscrowAta, // required for src spl token
       })
       .signers([seller])
       .rpc();
