@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 
@@ -21,10 +21,13 @@ import {
   CREATE_OFFER_AMOUNTS,
   ENDPOINT_PROGRAM_ID,
   EXCHANGE_RATE_SD,
-  TREASURY_SECRET_KEY,
+  SRC_EID,
 } from "../helpers/constants";
-import { quoteCreateOfferBeet } from "./utils/decode";
-import { OtcPdaDeriver } from "./utils/otc_pda_deriver";
+import { quoteCreateOfferBeet } from "./utils/beet-decoder";
+import { OtcPdaDeriver } from "./utils/otc-pda-deriver";
+import { assert } from "chai";
+import { OtcTools } from "./utils/otc-tools";
+import { Otc } from "./utils/otc";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -37,22 +40,17 @@ describe("Create Offer", () => {
 
   let accounts: {
     otcConfig: PublicKey;
-    endpoint: PublicKey;
-    treasury: PublicKey;
-    escrow: PublicKey;
   };
-  let endpoint: EndpointProgram.Endpoint;
-  const otcPdaDeriver = new OtcPdaDeriver(programId);
+
+  const endpoint = new EndpointProgram.Endpoint(
+    new PublicKey(ENDPOINT_PROGRAM_ID),
+  );
+  const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
     accounts = {
-      otcConfig: otcPdaDeriver.config(),
-      endpoint: new PublicKey(ENDPOINT_PROGRAM_ID),
-      treasury: Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey,
-      escrow: otcPdaDeriver.escrow(),
+      otcConfig: otc.deriver.config(),
     };
-
-    endpoint = new EndpointProgram.Endpoint(accounts.endpoint);
   });
 
   it("should quote create offer", async () => {
@@ -73,7 +71,7 @@ describe("Create Offer", () => {
       ).programId,
     );
 
-    const createOfferParams: CreateOfferParams = {
+    const params: CreateOfferParams = {
       dstSellerAddress: Array.from(wallet.publicKey.toBytes()),
       dstEid: peer.to.eid,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
@@ -81,15 +79,13 @@ describe("Create Offer", () => {
       exchangeRateSd: new anchor.BN(EXCHANGE_RATE_SD),
     };
 
-    const peerAccount = otcPdaDeriver.peer(createOfferParams.dstEid);
-    const enforcedOptions = otcPdaDeriver.enforcedOptions(
-      createOfferParams.dstEid,
-    );
+    const peerAccount = otc.deriver.peer(params.dstEid);
+    const enforcedOptions = otc.deriver.enforcedOptions(params.dstEid);
 
     const srcSellerAddress = Array.from(wallet.publicKey.toBytes());
 
     const ix = await program.methods
-      .quoteCreateOffer(srcSellerAddress, createOfferParams, false)
+      .quoteCreateOffer(srcSellerAddress, params, false)
       .accounts({
         otcConfig: accounts.otcConfig,
         srcTokenMint: null,
@@ -116,10 +112,25 @@ describe("Create Offer", () => {
 
     const parsed = quoteCreateOfferBeet.read(response, 0);
 
-    console.log("offer id", parsed[0].offerId);
-    console.log("src amount ld", parsed[0].srcAmountLd);
+    const offer = await OtcTools.getOfferFromParams(
+      program,
+      srcSellerAddress,
+      SRC_EID,
+      params.dstEid,
+      Array.from(PublicKey.default.toBytes()),
+      params.dstTokenAddress,
+      params.exchangeRateSd,
+    );
 
-    console.log("native fee", parsed[1].nativeFee);
-    console.log("lz token fee", parsed[1].lzTokenFee);
+    assert(
+      parsed[0].offerId.toString() == offer[1].toString(),
+      "src seller address",
+    );
+    assert(
+      parsed[0].srcAmountLd.toNumber() == params.srcAmountLd.toNumber(),
+      "src amount ld",
+    );
+    assert(parsed[1].nativeFee.toNumber() > 0, "native fee");
+    assert(parsed[1].lzTokenFee.toNumber() == 0, "lz token fee");
   });
 });

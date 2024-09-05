@@ -10,8 +10,8 @@ import {
   CREATE_OFFER_AMOUNTS,
   EXCHANGE_RATE_SD,
   SRC_EID,
-} from "./config/constants";
-import { quoteAcceptOfferBeet } from "./utils/decode";
+} from "./config/definitions";
+import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
 
 describe("Accept Offer", () => {
@@ -49,7 +49,7 @@ describe("Accept Offer", () => {
   });
 
   describe("Quote Accept Offer", () => {
-    it("should quote accept sol-sol offer", async () => {
+    it("should quote accept monochain sol-sol offer", async () => {
       const offer = await program.account.offer.fetch(accounts.offer[0]);
 
       const buyer = Array.from(Keypair.generate().publicKey.toBytes());

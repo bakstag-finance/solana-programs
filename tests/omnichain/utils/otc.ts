@@ -4,36 +4,9 @@ import { OtcMarket } from "../../../target/types/otc_market";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import transferSol from "./transfer";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
-import { SRC_EID } from "../config/constants";
-import { OtcPdaDeriver } from "./otc_pda_deriver";
-
-export class OtcTools {
-  static async getOfferFromParams(
-    program: Program<OtcMarket>,
-    srcSellerAddress: number[],
-    srcEid: number,
-    dstEid: number,
-    srcTokenAddress: number[],
-    dstTokenAddress: number[],
-    exchangeRateSd: anchor.BN,
-  ): Promise<[PublicKey, number[]]> {
-    const offerId: Uint8Array = await program.methods
-      .hashOffer(
-        srcSellerAddress,
-        srcEid,
-        dstEid,
-        srcTokenAddress,
-        dstTokenAddress,
-        exchangeRateSd,
-      )
-      .view();
-
-    return [
-      PublicKey.findProgramAddressSync([offerId], program.programId)[0],
-      Array.from(offerId),
-    ];
-  }
-}
+import { SRC_EID } from "../config/definitions";
+import { OtcPdaDeriver } from "./otc-pda-deriver";
+import { OtcTools } from "./otc-tools";
 
 export class Otc {
   program: Program<OtcMarket>;
