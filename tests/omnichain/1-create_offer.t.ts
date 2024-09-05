@@ -22,7 +22,7 @@ import {
   Amounts,
   ENDPOINT_PROGRAM_ID,
   ExchangeRates,
-} from "./config/definitions";
+} from "./config/constants";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 describe("Create Offer", () => {

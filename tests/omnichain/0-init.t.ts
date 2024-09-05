@@ -27,7 +27,7 @@ import { hexlify } from "ethers/lib/utils";
 import { solanaToArbSepConfig as peer } from "./config/peer";
 import { messagingFeeBeet } from "./utils/beet-decoder";
 import { OtcPdaDeriver } from "./utils/otc-pda-deriver";
-import { ENDPOINT_PROGRAM_ID, TREASURY_SECRET_KEY } from "./config/definitions";
+import { ENDPOINT_PROGRAM_ID, TREASURY_SECRET_KEY } from "./config/constants";
 
 describe("Omnichain", () => {
   const provider = anchor.AnchorProvider.env();

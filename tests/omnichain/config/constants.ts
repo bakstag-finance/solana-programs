@@ -16,13 +16,11 @@ const Decimals = {
   SD: 6,
 } as const;
 
-// Define constants for exchange rates
 const ExchangeRates = {
   OneToOne: 1 * 10 ** Decimals.SD,
   OneToTwo: 0.5 * 10 ** Decimals.SD,
 } as const;
 
-// Define constants for amounts
 const Amounts = {
   SOL: 1 * 10 ** Decimals.SOL,
 } as const;

@@ -6,7 +6,7 @@ import { simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
 import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { Amounts, ExchangeRates } from "./config/definitions";
+import { Amounts, ExchangeRates } from "./config/constants";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
