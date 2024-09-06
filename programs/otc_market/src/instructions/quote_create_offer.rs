@@ -12,15 +12,14 @@ pub struct QuoteCreateOffer<'info> {
         mint::token_program = token_program,         
         constraint = src_token_mint.decimals >= OtcConfig::SHARED_DECIMALS @ OtcError::InvalidLocalDecimals
     )]
+    /// NOTICE: required for src spl offer
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
 
-    pub token_program: Option<Interface<'info, TokenInterface>>,
-
-    /// NOTICE: required for crosschain offer
     #[account(
         seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &params.dst_eid.to_be_bytes()],
         bump = peer.bump
     )]
+    /// NOTICE: required for crosschain offer
     pub peer: Option<Account<'info, Peer>>,
 
     #[account(
@@ -31,7 +30,10 @@ pub struct QuoteCreateOffer<'info> {
         ],
         bump = enforced_options.bump
     )]
+    /// NOTICE: required for crosschain offer
     pub enforced_options: Option<Account<'info, EnforcedOptions>>,
+
+    pub token_program: Option<Interface<'info, TokenInterface>>,
 }
 
 impl QuoteCreateOffer<'_> {
@@ -76,16 +78,19 @@ impl QuoteCreateOffer<'_> {
 
             let payload = build_create_offer_payload(
                 &offer_id,
-                &src_seller_address,
-                &params.dst_seller_address,
-                OtcConfig::EID,
-                params.dst_eid,
-                &src_token_address,
-                &params.dst_token_address,
-                src_amount_sd,
-                params.exchange_rate_sd
-            );
+                &(Offer {
+                    src_seller_address: *src_seller_address,
+                    dst_seller_address: params.dst_seller_address,
+                    src_eid: OtcConfig::EID,
+                    dst_eid: params.dst_eid,
+                    src_token_address,
+                    dst_token_address: params.dst_token_address,
+                    src_amount_sd,
+                    exchange_rate_sd: params.exchange_rate_sd,
 
+                    bump: u8::default(), // unused (required for Offer struct creation)
+                })
+            );
             messaging_fee = oapp::endpoint_cpi::quote(
                 ctx.accounts.otc_config.endpoint_program,
                 ctx.remaining_accounts,

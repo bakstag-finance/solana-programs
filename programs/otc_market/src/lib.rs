@@ -14,7 +14,7 @@ use state::*;
 
 use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("7GWXYB7a3Ky5pohnPGiiXshvXWsdb3ZC95qTwkU6NYP8");
+declare_id!("4a3mL39r3BNa7dmptJmginDLrt9xdjC4wcwU8gosCUx8");
 
 #[program]
 pub mod otc_market {
@@ -81,9 +81,10 @@ pub mod otc_market {
     /// see [create_offer]
     pub fn create_offer(
         mut ctx: Context<CreateOffer>,
-        params: CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
-        CreateOffer::apply(&mut ctx, &params)
+        params: CreateOfferParams,
+        fee: MessagingFee
+    ) -> Result<(CreateOfferReceipt, MessagingReceipt)> {
+        CreateOffer::apply(&mut ctx, &params, &fee)
     }
 
     /// see [quote_accept_offer]

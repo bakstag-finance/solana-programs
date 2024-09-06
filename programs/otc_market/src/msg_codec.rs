@@ -1,3 +1,5 @@
+use crate::Offer;
+
 #[repr(u8)]
 enum Message {
     OfferCreated = 0,
@@ -6,17 +8,7 @@ enum Message {
     // OfferCanceled = 3,
 }
 
-pub fn build_create_offer_payload(
-    offer_id: &[u8; 32],
-    src_seller_address: &[u8; 32],
-    dst_seller_address: &[u8; 32],
-    src_eid: u32,
-    dst_eid: u32,
-    src_token_address: &[u8; 32],
-    dst_token_address: &[u8; 32],
-    src_amount_sd: u64,
-    exchange_rate_sd: u64
-) -> Vec<u8> {
+pub fn build_create_offer_payload(offer_id: &[u8; 32], offer: &Offer) -> Vec<u8> {
     // let mut msg_payload = Vec::new();
     // msg_payload.extend_from_slice(offer_id);
     // msg_payload.extend_from_slice(src_seller_address);
@@ -36,14 +28,14 @@ pub fn build_create_offer_payload(
     [
         &(Message::OfferCreated as u8).to_be_bytes() as &[u8],
         offer_id,
-        src_seller_address,
-        dst_seller_address,
-        &src_eid.to_be_bytes(),
-        &dst_eid.to_be_bytes(),
-        src_token_address,
-        dst_token_address,
-        &src_amount_sd.to_be_bytes(),
-        &exchange_rate_sd.to_be_bytes(),
+        &offer.src_seller_address,
+        &offer.dst_seller_address,
+        &offer.src_eid.to_be_bytes(),
+        &offer.dst_eid.to_be_bytes(),
+        &offer.src_token_address,
+        &offer.dst_token_address,
+        &offer.src_amount_sd.to_be_bytes(),
+        &offer.exchange_rate_sd.to_be_bytes(),
     ].concat()
 }
 

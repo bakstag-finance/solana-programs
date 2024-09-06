@@ -3,10 +3,15 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token_interface::{ Mint, TokenAccount, TokenInterface },
 };
+use oapp::endpoint::{
+    instructions::SendParams as EndpointSendParams,
+    MessagingReceipt,
+    MessagingFee,
+};
 
 #[event_cpi]
 #[derive(Accounts)]
-#[instruction(params: CreateOfferParams)]
+#[instruction(params: CreateOfferParams, fee: MessagingFee)]
 pub struct CreateOffer<'info> {
     #[account(mut)]
     pub seller: Signer<'info>,
@@ -32,10 +37,14 @@ pub struct CreateOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
 
+    #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
+    pub escrow: Account<'info, Escrow>,
+
     #[account(
         mint::token_program = token_program,
         constraint = src_token_mint.decimals >= OtcConfig::SHARED_DECIMALS @ OtcError::InvalidLocalDecimals
     )]
+    /// NOTICE: required for src spl offer
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
 
     #[account(
@@ -44,6 +53,7 @@ pub struct CreateOffer<'info> {
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program,
     )]
+    /// NOTICE: required for src spl offer
     pub src_seller_ata: Option<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
@@ -53,10 +63,26 @@ pub struct CreateOffer<'info> {
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program
     )]
+    /// NOTICE: required for src spl offer
     pub src_escrow_ata: Option<InterfaceAccount<'info, TokenAccount>>,
 
-    #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
-    pub escrow: Account<'info, Escrow>,
+    #[account(
+        seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &params.dst_eid.to_be_bytes()],
+        bump = peer.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub peer: Option<Account<'info, Peer>>,
+
+    #[account(
+        seeds = [
+            EnforcedOptions::ENFORCED_OPTIONS_SEED,
+            otc_config.key().as_ref(),
+            &params.dst_eid.to_be_bytes(),
+        ],
+        bump = enforced_options.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub enforced_options: Option<Account<'info, EnforcedOptions>>,
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 
@@ -68,8 +94,9 @@ pub struct CreateOffer<'info> {
 impl CreateOffer<'_> {
     pub fn apply(
         ctx: &mut Context<CreateOffer>,
-        params: &CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
+        params: &CreateOfferParams,
+        fee: &MessagingFee
+    ) -> Result<(CreateOfferReceipt, MessagingReceipt)> {
         let src_token_address = OtcConfig::get_token_address(ctx.accounts.src_token_mint.as_ref());
 
         let (src_amount_sd, src_amount_ld): (u64, u64);
@@ -115,12 +142,38 @@ impl CreateOffer<'_> {
             exchange_rate_sd: offer.exchange_rate_sd,
         });
 
-        let escrow_sol_account_info: AccountInfo = ctx.accounts.escrow.to_account_info();
+        let mut receipt = MessagingReceipt::default();
+
+        if params.dst_eid != OtcConfig::EID {
+            // crosschain offer
+
+            let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
+            let enforced_options = ctx.accounts.enforced_options
+                .as_ref()
+                .expect(OtcConfig::ERROR_MSG);
+
+            let payload = build_create_offer_payload(&offer_id, &offer);
+
+            receipt = oapp::endpoint_cpi::send(
+                ctx.accounts.otc_config.endpoint_program,
+                ctx.accounts.otc_config.key(),
+                ctx.remaining_accounts,
+                &[OtcConfig::OTC_SEED, &[ctx.accounts.otc_config.bump]],
+                EndpointSendParams {
+                    dst_eid: params.dst_eid,
+                    receiver: peer.address,
+                    message: payload,
+                    options: enforced_options.get_enforced_options(&None),
+                    native_fee: fee.native_fee,
+                    lz_token_fee: fee.lz_token_fee,
+                }
+            )?;
+        }
 
         OtcConfig::transfer(
             ctx.accounts.seller.as_ref(),
             src_amount_ld,
-            Some(&escrow_sol_account_info),
+            Some(&ctx.accounts.escrow.to_account_info()),
             ctx.accounts.token_program.as_ref(),
             ctx.accounts.src_seller_ata.as_ref(),
             ctx.accounts.src_token_mint.as_ref(),
@@ -128,10 +181,13 @@ impl CreateOffer<'_> {
             None
         )?;
 
-        Ok(CreateOfferReceipt {
-            offer_id,
-            src_amount_ld,
-        })
+        Ok((
+            CreateOfferReceipt {
+                offer_id,
+                src_amount_ld,
+            },
+            receipt,
+        ))
     }
 }
 
