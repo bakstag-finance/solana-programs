@@ -33,8 +33,10 @@ export class Otc {
     srcTokenMint: PublicKey | null = null, // required for src spl token
   ): Promise<[PublicKey, number[]]> {
     const otcConfig = this.deriver.config();
+
     const escrow = this.deriver.escrow();
-    const offer = await OtcTools.getOfferFromParams(
+
+    const offerPromise = OtcTools.getOfferFromParams(
       this.program,
       Array.from(seller.publicKey.toBytes()),
       EndpointId.SOLANA_V2_TESTNET,
@@ -46,47 +48,30 @@ export class Otc {
       params.exchangeRateSd,
     );
 
-    const srcEscrowAta = srcTokenMint
-      ? (
-          await getOrCreateAssociatedTokenAccount(
-            this.connection,
-            seller,
-            srcTokenMint,
-            seller.publicKey,
-            true,
-          )
-        ).address
-      : null;
-    const srcSellerAta = srcTokenMint
-      ? (
-          await getOrCreateAssociatedTokenAccount(
-            this.connection,
-            seller,
-            srcTokenMint,
-            seller.publicKey,
-          )
-        ).address
-      : null;
+    const srcEscrowAtaPromise = srcTokenMint
+      ? getOrCreateAssociatedTokenAccount(
+          this.connection,
+          seller,
+          srcTokenMint,
+          seller.publicKey,
+          true,
+        ).then((account) => account.address)
+      : Promise.resolve(null);
 
-    if (!srcTokenMint) {
-      // src sol token
-      await transferSol(
-        this.connection,
-        this.payer,
-        seller.publicKey,
-        params.srcAmountLd.toNumber() * 2,
-      );
-    } else {
-      // src spl token
-      await mintTo(
-        this.connection,
-        seller,
-        srcTokenMint,
-        srcSellerAta,
-        seller.publicKey,
-        params.srcAmountLd.toNumber(),
-      );
-    }
+    const srcSellerAtaPromise = srcTokenMint
+      ? getOrCreateAssociatedTokenAccount(
+          this.connection,
+          seller,
+          srcTokenMint,
+          seller.publicKey,
+        ).then((account) => account.address)
+      : Promise.resolve(null);
+
+    const [offer, srcEscrowAta, srcSellerAta] = await Promise.all([
+      offerPromise,
+      srcEscrowAtaPromise,
+      srcSellerAtaPromise,
+    ]);
 
     await this.program.methods
       .createOffer(params)

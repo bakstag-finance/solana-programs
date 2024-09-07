@@ -8,6 +8,13 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
   243, 60, 212, 163, 223, 37, 234, 162, 211, 245, 61, 253, 139, 80,
 ]);
 
+enum Token {
+  SOL,
+  SPL,
+  ERC20,
+  ETH,
+}
+
 const Decimals = {
   SOL: 9,
   SPL: 6,
@@ -23,6 +30,9 @@ const ExchangeRates = {
 
 const Amounts = {
   SOL: 1 * 10 ** Decimals.SOL,
+  SPL: 1 * 10 ** Decimals.SPL,
+  ERC20: 1 * 10 ** Decimals.ERC20,
+  ETH: 1 * 10 ** Decimals.ETH,
 } as const;
 
-export { Decimals, ExchangeRates, Amounts };
+export { Decimals, ExchangeRates, Amounts, Token };
