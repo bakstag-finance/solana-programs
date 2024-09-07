@@ -5,8 +5,8 @@ import { OtcMarket } from "../../target/types/otc_market";
 import { simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
 import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
-import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { Amounts, ExchangeRates } from "./config/constants";
+import { OtcTools } from "./utils/otc-tools";
+import { Token } from "./config/constants";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -25,20 +25,14 @@ describe("Accept Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
-    const seller = Keypair.generate();
-
-    const params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"] = {
-      dstSellerAddress: Array.from(seller.publicKey.toBytes()),
-      dstEid: EndpointId.SOLANA_V2_TESTNET,
-      dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-      srcAmountLd: new anchor.BN(Amounts.SOL),
-      exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
-    };
-
+    const { seller, offer } = await OtcTools.createOffer(otc, {
+      srcToken: Token.SOL,
+      dstToken: Token.SOL,
+    });
     accounts = {
       otcConfig: otc.deriver.config(),
       seller,
-      offer: await otc.createOffer(params, seller),
+      offer,
     };
   });
 

@@ -8,6 +8,10 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
   243, 60, 212, 163, 223, 37, 234, 162, 211, 245, 61, 253, 139, 80,
 ]);
 
+export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
+
+export const COMMITMENT = "confirmed";
+
 enum Token {
   SOL,
   SPL,
@@ -28,11 +32,12 @@ const ExchangeRates = {
   OneToTwo: 0.5 * 10 ** Decimals.SD,
 } as const;
 
-const Amounts = {
-  SOL: 1 * 10 ** Decimals.SOL,
-  SPL: 1 * 10 ** Decimals.SPL,
-  ERC20: 1 * 10 ** Decimals.ERC20,
-  ETH: 1 * 10 ** Decimals.ETH,
+const AmountsLD = {
+  // 0.123
+  SOL: 123000,
+  SPL: 123,
+  ERC20: 123_000_000_000_000,
+  ETH: 123_000_000_000_000,
 } as const;
 
-export { Decimals, ExchangeRates, Amounts, Token };
+export { Decimals, ExchangeRates, AmountsLD, Token };

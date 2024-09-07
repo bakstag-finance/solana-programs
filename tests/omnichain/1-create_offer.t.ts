@@ -19,7 +19,7 @@ import { assert } from "chai";
 import { OtcTools } from "./utils/otc-tools";
 import { Otc } from "./utils/otc";
 import {
-  Amounts,
+  AmountsLD,
   ENDPOINT_PROGRAM_ID,
   ExchangeRates,
 } from "./config/constants";
@@ -71,7 +71,7 @@ describe("Create Offer", () => {
       dstSellerAddress: Array.from(wallet.publicKey.toBytes()),
       dstEid: peer.to.eid,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-      srcAmountLd: new anchor.BN(Amounts.SOL),
+      srcAmountLd: new anchor.BN(AmountsLD.SOL),
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 

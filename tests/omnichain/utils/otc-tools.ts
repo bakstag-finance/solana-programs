@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
-import { Amounts, Decimals, ExchangeRates, Token } from "../config/constants";
+import { AmountsLD, Decimals, ExchangeRates, Token } from "../config/constants";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Otc } from "./otc";
 import {
@@ -28,17 +28,19 @@ export class OtcTools {
     offer: [PublicKey, number[]];
     srcTokenMint?: PublicKey;
   }> {
-    const dstEid = crosschain.dstEid ?? EndpointId.SOLANA_V2_TESTNET;
-
-    const srcSeller = Keypair.generate();
-    const dstSellerAddress =
-      crosschain.dstSeller ?? Array.from(srcSeller.publicKey.toBytes());
-
-    // offer type
     const isCrosschain = !!crosschain;
     const isSrcTokenNative = tokenPair.srcToken == Token.SOL;
 
-    // src token accounts if needed
+    const srcSeller = Keypair.generate();
+
+    const [dstEid, dstSellerAddress] = isCrosschain
+      ? [crosschain.dstEid, crosschain.dstSeller]
+      : [
+          EndpointId.SOLANA_V2_TESTNET,
+          Array.from(srcSeller.publicKey.toBytes()),
+        ];
+
+    // accounts
     const srcTokenMint = isSrcTokenNative
       ? null
       : await createMint(
@@ -47,34 +49,41 @@ export class OtcTools {
           otc.payer.publicKey,
           null,
           Decimals.SPL,
-        );
-    const srcSellerAta = srcTokenMint
-      ? (
-          await getOrCreateAssociatedTokenAccount(
-            otc.connection,
-            srcSeller,
-            srcTokenMint,
-            srcSeller.publicKey,
-          )
-        ).address
-      : null;
+        ); // create token on behalf of otc payer
 
+    // fund seller
     if (isSrcTokenNative) {
       await transferSol(
         otc.connection,
         otc.payer,
         srcSeller.publicKey,
-        Amounts.SOL * 2,
+        AmountsLD.SOL + 1_000_000_000, // offer amount + gas
       );
     } else {
+      await transferSol(
+        otc.connection,
+        otc.payer,
+        srcSeller.publicKey,
+        1_000_000_000, // gas
+      );
+
+      const srcSellerAta = (
+        await getOrCreateAssociatedTokenAccount(
+          otc.connection,
+          srcSeller,
+          srcTokenMint,
+          srcSeller.publicKey,
+        )
+      ).address;
+
       await mintTo(
         otc.connection,
         otc.payer,
         srcTokenMint,
         srcSellerAta,
         otc.payer,
-        Amounts.SPL,
-      );
+        AmountsLD.SPL,
+      ); // mint on behalf of otc payer
     }
 
     // create offer
@@ -82,7 +91,9 @@ export class OtcTools {
       dstSellerAddress,
       dstEid,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-      srcAmountLd: new anchor.BN(Amounts.SOL),
+      srcAmountLd: new anchor.BN(
+        isSrcTokenNative ? AmountsLD.SOL : AmountsLD.SPL,
+      ),
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 

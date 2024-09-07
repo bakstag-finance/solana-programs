@@ -3,7 +3,7 @@ import * as beet from "@metaplex-foundation/beet";
 import * as anchor from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
 
-type MessagingFee = {
+export type MessagingFee = {
   nativeFee: anchor.BN;
   lzTokenFee: anchor.BN;
 };

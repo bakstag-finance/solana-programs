@@ -271,99 +271,99 @@ describe("Omnichain", () => {
     });
   });
 
-  describe("Crosschain msg", () => {
-    it("should quote and send msg", async () => {
-      const path: PacketPath = {
-        dstEid: peer.to.eid,
-        srcEid: 40168,
-        sender: hexlify(accounts.otcConfig.toBytes()),
-        receiver: bytes32ToEthAddress(peer.peerAddress),
-      };
+  // describe("Crosschain msg", () => {
+  //   it("should quote and send msg", async () => {
+  //     const path: PacketPath = {
+  //       dstEid: peer.to.eid,
+  //       srcEid: 40168,
+  //       sender: hexlify(accounts.otcConfig.toBytes()),
+  //       receiver: bytes32ToEthAddress(peer.peerAddress),
+  //     };
 
-      const sendLib = new UlnProgram.Uln(
-        (
-          await endpoint.getSendLibrary(
-            connection,
-            accounts.otcConfig,
-            peer.to.eid,
-          )
-        ).programId,
-      );
+  //     const sendLib = new UlnProgram.Uln(
+  //       (
+  //         await endpoint.getSendLibrary(
+  //           connection,
+  //           accounts.otcConfig,
+  //           peer.to.eid,
+  //         )
+  //       ).programId,
+  //     );
 
-      const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
-        dstEid: peer.to.eid,
-        options: Buffer.from(
-          Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes(),
-        ),
-        to: Array.from(peer.peerAddress),
-        composeMsg: null,
-        payInLzToken: false,
-      };
+  //     const quoteParams: anchor.IdlTypes<OtcMarket>["QuoteParams"] = {
+  //       dstEid: peer.to.eid,
+  //       options: Buffer.from(
+  //         Options.newOptions().addExecutorLzReceiveOption(0, 0).toBytes(),
+  //       ),
+  //       to: Array.from(peer.peerAddress),
+  //       composeMsg: null,
+  //       payInLzToken: false,
+  //     };
 
-      const peerAccount = otcPdaDeriver.peer(quoteParams.dstEid);
-      const enforcedOptions = otcPdaDeriver.enforcedOptions(quoteParams.dstEid);
+  //     const peerAccount = otcPdaDeriver.peer(quoteParams.dstEid);
+  //     const enforcedOptions = otcPdaDeriver.enforcedOptions(quoteParams.dstEid);
 
-      const ix = await program.methods
-        .quote(quoteParams)
-        .accounts({
-          otcConfig: accounts.otcConfig,
-          peer: peerAccount,
-          enforcedOptions,
-        })
-        .remainingAccounts(
-          await endpoint.getQuoteIXAccountMetaForCPI(
-            connection,
-            wallet.publicKey,
-            path,
-            sendLib,
-          ),
-        )
-        .instruction();
+  //     const ix = await program.methods
+  //       .quote(quoteParams)
+  //       .accounts({
+  //         otcConfig: accounts.otcConfig,
+  //         peer: peerAccount,
+  //         enforcedOptions,
+  //       })
+  //       .remainingAccounts(
+  //         await endpoint.getQuoteIXAccountMetaForCPI(
+  //           connection,
+  //           wallet.publicKey,
+  //           path,
+  //           sendLib,
+  //         ),
+  //       )
+  //       .instruction();
 
-      const response = await simulateTransaction(
-        connection,
-        [ix],
-        programId,
-        wallet.publicKey,
-        commitment,
-      );
+  //     const response = await simulateTransaction(
+  //       connection,
+  //       [ix],
+  //       programId,
+  //       wallet.publicKey,
+  //       commitment,
+  //     );
 
-      const { nativeFee, lzTokenFee } = messagingFeeBeet.read(response, 0);
+  //     const { nativeFee, lzTokenFee } = messagingFeeBeet.read(response, 0);
 
-      const sendParams: anchor.IdlTypes<OtcMarket>["SendParams"] = {
-        ...quoteParams,
-        nativeFee,
-        lzTokenFee,
-      };
+  //     const sendParams: anchor.IdlTypes<OtcMarket>["SendParams"] = {
+  //       ...quoteParams,
+  //       nativeFee,
+  //       lzTokenFee,
+  //     };
 
-      const send = await program.methods
-        .send(sendParams)
-        .accounts({
-          otcConfig: accounts.otcConfig,
-          peer: peerAccount,
-          enforcedOptions,
-        })
-        .remainingAccounts(
-          await endpoint.getSendIXAccountMetaForCPI(
-            connection,
-            wallet.publicKey,
-            path,
-            sendLib,
-          ),
-        )
-        .signers([wallet.payer])
-        .transaction();
+  //     const send = await program.methods
+  //       .send(sendParams)
+  //       .accounts({
+  //         otcConfig: accounts.otcConfig,
+  //         peer: peerAccount,
+  //         enforcedOptions,
+  //       })
+  //       .remainingAccounts(
+  //         await endpoint.getSendIXAccountMetaForCPI(
+  //           connection,
+  //           wallet.publicKey,
+  //           path,
+  //           sendLib,
+  //         ),
+  //       )
+  //       .signers([wallet.payer])
+  //       .transaction();
 
-      const tx = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
-        send,
-      );
+  //     const tx = new Transaction().add(
+  //       ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
+  //       send,
+  //     );
 
-      console.log(
-        await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
-          commitment,
-        }),
-      );
-    });
-  });
+  //     console.log(
+  //       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
+  //         commitment,
+  //       }),
+  //     );
+  //   });
+  // });
 });

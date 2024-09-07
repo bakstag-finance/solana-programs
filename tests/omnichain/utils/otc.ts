@@ -2,11 +2,18 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import transferSol from "./transfer";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { OtcPdaDeriver } from "./otc-pda-deriver";
 import { OtcTools } from "./otc-tools";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import {
+  EndpointProgram,
+  simulateTransaction,
+  UlnProgram,
+} from "@layerzerolabs/lz-solana-sdk-v2";
+import { COMMITMENT, ENDPOINT_PROGRAM_ID, PEER } from "../config/constants";
+import { hexlify } from "ethers/lib/utils";
+import { MessagingFee, quoteCreateOfferBeet } from "./beet-decoder";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -14,6 +21,7 @@ export class Otc {
   payer: Keypair;
 
   deriver: OtcPdaDeriver;
+  endpoint: EndpointProgram.Endpoint;
 
   constructor(
     program: Program<OtcMarket>,
@@ -25,6 +33,67 @@ export class Otc {
     this.payer = payer;
 
     this.deriver = new OtcPdaDeriver(program.programId);
+    this.endpoint = new EndpointProgram.Endpoint(
+      new PublicKey(ENDPOINT_PROGRAM_ID),
+    );
+  }
+
+  async quoteCreateOffer(
+    params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"],
+    seller: Keypair,
+    srcTokenMint: PublicKey | null = null, // required for src spl token
+  ): Promise<[anchor.IdlTypes<OtcMarket>["CreateOfferReceipt"], MessagingFee]> {
+    const srcEid = EndpointId.SOLANA_V2_TESTNET;
+    const crosschain = params.dstEid !== srcEid;
+
+    const otcConfig = this.deriver.config();
+
+    const [peer, enforcedOptions, remainingAccounts] = crosschain
+      ? [
+          this.deriver.peer(params.dstEid),
+          this.deriver.enforcedOptions(params.dstEid),
+          await this.endpoint.getQuoteIXAccountMetaForCPI(
+            this.connection,
+            seller.publicKey,
+            {
+              dstEid: params.dstEid,
+              srcEid,
+              sender: hexlify(otcConfig.toBytes()),
+              receiver: PEER,
+            },
+            new UlnProgram.Uln(
+              (
+                await this.endpoint.getSendLibrary(
+                  this.connection,
+                  otcConfig,
+                  params.dstEid,
+                )
+              ).programId,
+            ),
+          ),
+        ]
+      : [null, null, []];
+
+    const ix = await this.program.methods
+      .quoteCreateOffer(Array.from(seller.publicKey.toBytes()), params, false)
+      .accounts({
+        otcConfig,
+        srcTokenMint,
+        peer,
+        enforcedOptions,
+      })
+      .remainingAccounts(remainingAccounts)
+      .instruction();
+
+    const response = await simulateTransaction(
+      this.connection,
+      [ix],
+      this.program.programId,
+      seller.publicKey,
+      COMMITMENT,
+    );
+
+    return quoteCreateOfferBeet.read(response, 0);
   }
 
   async createOffer(
@@ -32,14 +101,15 @@ export class Otc {
     seller: Keypair,
     srcTokenMint: PublicKey | null = null, // required for src spl token
   ): Promise<[PublicKey, number[]]> {
+    const srcEid = EndpointId.SOLANA_V2_TESTNET;
+    const crosschain = params.dstEid !== srcEid;
+
     const otcConfig = this.deriver.config();
-
     const escrow = this.deriver.escrow();
-
     const offerPromise = OtcTools.getOfferFromParams(
       this.program,
       Array.from(seller.publicKey.toBytes()),
-      EndpointId.SOLANA_V2_TESTNET,
+      srcEid,
       params.dstEid,
       srcTokenMint
         ? Array.from(srcTokenMint.toBytes())
@@ -48,24 +118,23 @@ export class Otc {
       params.exchangeRateSd,
     );
 
-    const srcEscrowAtaPromise = srcTokenMint
-      ? getOrCreateAssociatedTokenAccount(
-          this.connection,
-          seller,
-          srcTokenMint,
-          seller.publicKey,
-          true,
-        ).then((account) => account.address)
-      : Promise.resolve(null);
-
-    const srcSellerAtaPromise = srcTokenMint
-      ? getOrCreateAssociatedTokenAccount(
-          this.connection,
-          seller,
-          srcTokenMint,
-          seller.publicKey,
-        ).then((account) => account.address)
-      : Promise.resolve(null);
+    const [srcEscrowAtaPromise, srcSellerAtaPromise] = srcTokenMint
+      ? [
+          getOrCreateAssociatedTokenAccount(
+            this.connection,
+            seller,
+            srcTokenMint,
+            escrow,
+            true,
+          ).then((account) => account.address),
+          getOrCreateAssociatedTokenAccount(
+            this.connection,
+            seller,
+            srcTokenMint,
+            seller.publicKey,
+          ).then((account) => account.address),
+        ]
+      : [Promise.resolve(null), Promise.resolve(null)];
 
     const [offer, srcEscrowAta, srcSellerAta] = await Promise.all([
       offerPromise,
@@ -73,8 +142,40 @@ export class Otc {
       srcSellerAtaPromise,
     ]);
 
+    const [peer, enforcedOptions, remainingAccounts] = crosschain
+      ? [
+          this.deriver.peer(params.dstEid),
+          this.deriver.enforcedOptions(params.dstEid),
+          await this.endpoint.getSendIXAccountMetaForCPI(
+            this.connection,
+            seller.publicKey,
+            {
+              dstEid: params.dstEid,
+              srcEid,
+              sender: hexlify(otcConfig.toBytes()),
+              receiver: PEER,
+            },
+            new UlnProgram.Uln(
+              (
+                await this.endpoint.getSendLibrary(
+                  this.connection,
+                  otcConfig,
+                  params.dstEid,
+                )
+              ).programId,
+            ),
+          ),
+        ]
+      : [null, null, []];
+
+    const messagingFee = await this.quoteCreateOffer(
+      params,
+      seller,
+      srcTokenMint,
+    )[1];
+
     await this.program.methods
-      .createOffer(params)
+      .createOffer(params, messagingFee)
       .accounts({
         seller: seller.publicKey,
         offer: offer[0],
@@ -83,9 +184,14 @@ export class Otc {
         srcTokenMint, // required for src spl token
         srcSellerAta, // required for src spl token
         srcEscrowAta, // required for src spl token
+        peer, // required for cross chain offer
+        enforcedOptions, // required for cross chain offer
       })
+      .remainingAccounts(remainingAccounts)
       .signers([seller])
-      .rpc();
+      .rpc({
+        commitment: COMMITMENT,
+      });
 
     return offer;
   }
