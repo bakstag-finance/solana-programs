@@ -11,6 +11,7 @@ import {
   mintTo,
 } from "@solana/spl-token";
 import transferSol from "./transfer";
+import { solanaToArbSepConfig } from "../config/peer";
 
 export class OtcTools {
   static async createOffer(
@@ -21,7 +22,6 @@ export class OtcTools {
     },
     crosschain?: {
       dstSeller: number[];
-      dstEid: number;
     },
   ): Promise<{
     seller: Keypair;
@@ -29,16 +29,18 @@ export class OtcTools {
     srcTokenMint?: PublicKey;
   }> {
     const isCrosschain = !!crosschain;
+    console.log({ isCrosschain });
     const isSrcTokenNative = tokenPair.srcToken == Token.SOL;
 
     const srcSeller = Keypair.generate();
 
     const [dstEid, dstSellerAddress] = isCrosschain
-      ? [crosschain.dstEid, crosschain.dstSeller]
+      ? [solanaToArbSepConfig.to.eid, crosschain.dstSeller]
       : [
           EndpointId.SOLANA_V2_TESTNET,
           Array.from(srcSeller.publicKey.toBytes()),
         ];
+    console.log({ dstEid });
 
     // accounts
     const srcTokenMint = isSrcTokenNative

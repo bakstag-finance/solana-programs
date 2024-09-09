@@ -6,7 +6,9 @@ import { simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
 import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
 import { OtcTools } from "./utils/otc-tools";
-import { Token } from "./config/constants";
+import { AmountsLD, Token } from "./config/constants";
+import { assert } from "chai";
+import { ACCEPT_OFFER_AMOUNTS } from "../helpers/constants";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -66,10 +68,13 @@ describe("Accept Offer", () => {
       );
 
       const parsed = quoteAcceptOfferBeet.read(response, 0);
-      console.log("dst amount ld", parsed[0].dstAmountLd);
-      console.log("fee ld", parsed[0].feeLd);
-      console.log("native fee", parsed[1].nativeFee);
-      console.log("lz token fee", parsed[1].lzTokenFee);
+      assert(parsed[0].dstAmountLd.toNumber() == AmountsLD.SOL, "dstAmount");
+      assert(
+        parsed[0].feeLd.toNumber() == AmountsLD.SOL / 100,
+        "protocol fee amount",
+      );
+      assert(parsed[1].nativeFee.toNumber() == 0, "native fee, monochain");
+      assert(parsed[1].lzTokenFee.toNumber() == 0, "lz token fee");
     });
   });
 });

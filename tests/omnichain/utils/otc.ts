@@ -1,7 +1,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  VersionedTransaction,
+  TransactionMessage,
+  Transaction,
+  ComputeBudgetProgram,
+} from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import { OtcPdaDeriver } from "./otc-pda-deriver";
 import { OtcTools } from "./otc-tools";
@@ -172,10 +180,10 @@ export class Otc {
       params,
       seller,
       srcTokenMint,
-    )[1];
+    );
 
-    await this.program.methods
-      .createOffer(params, messagingFee)
+    const create = await this.program.methods
+      .createOffer(params, messagingFee[1])
       .accounts({
         seller: seller.publicKey,
         offer: offer[0],
@@ -188,10 +196,36 @@ export class Otc {
         enforcedOptions, // required for cross chain offer
       })
       .remainingAccounts(remainingAccounts)
-      .signers([seller])
-      .rpc({
-        commitment: COMMITMENT,
-      });
+      .transaction();
+    const tx = new Transaction().add(
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
+      create,
+    );
+
+    let { blockhash } = await this.connection.getLatestBlockhash();
+    const message = new TransactionMessage({
+      payerKey: seller.publicKey, // Public key of the account that will pay for the transaction
+      recentBlockhash: blockhash, // Latest blockhash
+      instructions: tx.instructions, // Instructions included in transaction
+    }).compileToV0Message();
+
+    const transaction = new VersionedTransaction(message);
+
+    transaction.sign([seller]);
+
+    const transactionSignature =
+      await this.connection.sendTransaction(transaction);
+
+    const latestBlockhash = await this.connection.getLatestBlockhash();
+
+    const confirmation = await this.connection.confirmTransaction(
+      {
+        signature: transactionSignature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      },
+      COMMITMENT,
+    );
 
     return offer;
   }

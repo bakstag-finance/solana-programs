@@ -14,7 +14,7 @@ use state::*;
 
 use oapp::endpoint::{ MessagingFee, MessagingReceipt };
 
-declare_id!("4a3mL39r3BNa7dmptJmginDLrt9xdjC4wcwU8gosCUx8");
+declare_id!("C7CjKk66KYBd2WCbFDg1Ued7nQPHfU5b37n3AABqceJc");
 
 #[program]
 pub mod otc_market {
