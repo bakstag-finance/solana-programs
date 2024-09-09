@@ -25,6 +25,7 @@ describe("Accept Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
+    console.log("biba");
     const { seller, offer } = await OtcTools.createOffer(
       otc,
       {
@@ -35,6 +36,7 @@ describe("Accept Offer", () => {
         dstSeller: Array.from(wallet.publicKey.toBytes()),
       },
     );
+    console.log("boba");
     accounts = {
       otcConfig: otc.deriver.config(),
       seller,
@@ -44,7 +46,9 @@ describe("Accept Offer", () => {
 
   describe("Quote Accept Offer", () => {
     it("should quote accept monochain sol-sol offer", async () => {
+      console.log(accounts.offer[0]);
       const offer = await program.account.offer.fetch(accounts.offer[0]);
+      console.log(offer);
 
       const buyer = Array.from(Keypair.generate().publicKey.toBytes());
       const params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"] = {
@@ -52,6 +56,8 @@ describe("Accept Offer", () => {
         srcAmountSd: offer.srcAmountSd,
         srcBuyerAddress: buyer,
       };
+
+      console.log(accounts.offer);
 
       const ix = await program.methods
         .quoteAcceptOffer(buyer, params, false)
