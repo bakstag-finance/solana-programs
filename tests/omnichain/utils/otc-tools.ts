@@ -29,6 +29,7 @@ export class OtcTools {
     srcTokenMint?: PublicKey;
   }> {
     const isCrosschain = !!crosschain;
+    console.log({ isCrosschain });
     const isSrcTokenNative = tokenPair.srcToken == Token.SOL;
 
     const srcSeller = Keypair.generate();
@@ -39,6 +40,7 @@ export class OtcTools {
           EndpointId.SOLANA_V2_TESTNET,
           Array.from(srcSeller.publicKey.toBytes()),
         ];
+    console.log({ dstEid });
 
     // accounts
     const srcTokenMint = isSrcTokenNative

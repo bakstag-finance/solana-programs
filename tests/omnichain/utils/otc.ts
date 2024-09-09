@@ -181,10 +181,6 @@ export class Otc {
       seller,
       srcTokenMint,
     );
-    // console.log(messagingFee);
-    // console.log(messagingFee[1]);
-    // console.log(messagingFee[1].nativeFee);
-    // console.log(123);
 
     const create = await this.program.methods
       .createOffer(params, messagingFee[1])
@@ -200,8 +196,6 @@ export class Otc {
         enforcedOptions, // required for cross chain offer
       })
       .remainingAccounts(remainingAccounts)
-      //.signers([seller])
-      //.instruction();
       .transaction();
     const tx = new Transaction().add(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
@@ -217,10 +211,8 @@ export class Otc {
 
     const transaction = new VersionedTransaction(message);
 
-    // Sign the transaction
     transaction.sign([seller]);
 
-    // Send the signed transaction to the network
     const transactionSignature =
       await this.connection.sendTransaction(transaction);
 
@@ -233,13 +225,7 @@ export class Otc {
         lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
       },
       COMMITMENT,
-    ); // Use 'finalized' to wait for full finalization
-
-    console.log("Transaction confirmed:", confirmation);
-
-    console.log("Offer created", transactionSignature);
-
-    //console.log(456);
+    );
 
     return offer;
   }
