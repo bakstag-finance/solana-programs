@@ -174,6 +174,8 @@ export class Otc {
       srcTokenMint,
     )[1];
 
+    console.log(123);
+
     await this.program.methods
       .createOffer(params, messagingFee)
       .accounts({
@@ -189,9 +191,9 @@ export class Otc {
       })
       .remainingAccounts(remainingAccounts)
       .signers([seller])
-      .rpc({
-        commitment: COMMITMENT,
-      });
+      .prepare();
+
+    console.log(456);
 
     return offer;
   }

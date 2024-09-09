@@ -8,6 +8,7 @@ import {
 } from "@layerzerolabs/lz-solana-sdk-v2";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { PEER } from "./constants";
 
 type SolanaPeerConfig = {
   to: OmniPointHardhat;
@@ -55,7 +56,7 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
   to: {
     eid: EndpointId.ARBSEP_V2_TESTNET,
   },
-  peerAddress: addressToBytes32("0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd"),
+  peerAddress: addressToBytes32(PEER),
   sendLibrary: uln,
   receiveLibraryConfig: {
     receiveLibrary: uln,

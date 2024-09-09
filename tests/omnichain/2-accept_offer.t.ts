@@ -25,10 +25,16 @@ describe("Accept Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
-    const { seller, offer } = await OtcTools.createOffer(otc, {
-      srcToken: Token.SOL,
-      dstToken: Token.SOL,
-    });
+    const { seller, offer } = await OtcTools.createOffer(
+      otc,
+      {
+        srcToken: Token.SOL,
+        dstToken: Token.SOL,
+      },
+      {
+        dstSeller: Array.from(wallet.publicKey.toBytes()),
+      },
+    );
     accounts = {
       otcConfig: otc.deriver.config(),
       seller,
