@@ -7,7 +7,6 @@ import {
   Decimals,
   ExchangeRates,
   GAS,
-  SOLANA_EID,
   Token,
 } from "../config/constants";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
@@ -28,7 +27,6 @@ import {
 import { solanaToArbSepConfig as peer } from "../config/peer";
 import { EndpointProgram, UlnProgram } from "@layerzerolabs/lz-solana-sdk-v2";
 
-
 export class OtcTools {
   static async createOffer(
     otc: Otc,
@@ -48,14 +46,12 @@ export class OtcTools {
     const isSrcTokenNative = !!!srcToken;
     const isDstTokenNative = !!!dstToken;
 
-
     const [dstEid, dstSellerAddress] = isCrosschain
       ? [solanaToArbSepConfig.to.eid, crosschain.dstSeller]
       : [
           EndpointId.SOLANA_V2_TESTNET,
           Array.from(srcSeller.publicKey.toBytes()),
         ];
-    console.log({ dstEid });
 
     const srcTokenMint = isSrcTokenNative ? null : srcToken.srcTokenMint;
     const dstTokenMint = isDstTokenNative
