@@ -19,6 +19,7 @@ import {
 } from "@solana/spl-token";
 import transferSol from "./transfer";
 import { solanaToArbSepConfig } from "../config/peer";
+
 import { CreateOfferParams } from "../../helpers/create_offer";
 import {
   bytes32ToEthAddress,
@@ -26,6 +27,7 @@ import {
 } from "@layerzerolabs/lz-v2-utilities";
 import { solanaToArbSepConfig as peer } from "../config/peer";
 import { EndpointProgram, UlnProgram } from "@layerzerolabs/lz-solana-sdk-v2";
+
 
 export class OtcTools {
   static async createOffer(
@@ -42,8 +44,10 @@ export class OtcTools {
     },
   ): Promise<[PublicKey, number[]]> {
     const isCrosschain = !!crosschain;
+
     const isSrcTokenNative = !!!srcToken;
     const isDstTokenNative = !!!dstToken;
+
 
     const [dstEid, dstSellerAddress] = isCrosschain
       ? [solanaToArbSepConfig.to.eid, crosschain.dstSeller]
@@ -51,6 +55,7 @@ export class OtcTools {
           EndpointId.SOLANA_V2_TESTNET,
           Array.from(srcSeller.publicKey.toBytes()),
         ];
+    console.log({ dstEid });
 
     const srcTokenMint = isSrcTokenNative ? null : srcToken.srcTokenMint;
     const dstTokenMint = isDstTokenNative

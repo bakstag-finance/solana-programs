@@ -177,6 +177,7 @@ export class Otc {
         ]
       : [null, null, []];
 
+
     // const messagingFee = await this.quoteCreateOffer(
     //   params,
     //   seller,
@@ -185,6 +186,7 @@ export class Otc {
 
     const create = await this.program.methods
       .createOffer(params, messagingFee)
+
       .accounts({
         seller: seller.publicKey,
         offer: offer[0],

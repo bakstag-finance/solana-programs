@@ -9,6 +9,7 @@ import { OtcTools } from "./utils/otc-tools";
 import { AmountsLD, Token } from "./config/constants";
 import { assert } from "chai";
 import { ACCEPT_OFFER_AMOUNTS } from "../helpers/constants";
+
 import { getRemainings } from "./utils/transfer";
 
 describe("Accept Offer", () => {
