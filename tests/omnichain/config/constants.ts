@@ -11,6 +11,7 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
 export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
 
 export const COMMITMENT = "confirmed";
+export const SOLANA_EID = 40168;
 
 enum Token {
   SOL,
@@ -18,6 +19,7 @@ enum Token {
   ERC20,
   ETH,
 }
+const GAS = 100_000_000; // 0.1 sol
 
 const Decimals = {
   SOL: 9,
@@ -40,4 +42,4 @@ const AmountsLD = {
   ETH: 123_000_000_000_000,
 } as const;
 
-export { Decimals, ExchangeRates, AmountsLD, Token };
+export { Decimals, ExchangeRates, AmountsLD, Token, GAS };

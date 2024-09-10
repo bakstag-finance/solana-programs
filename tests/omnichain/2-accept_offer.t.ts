@@ -2,13 +2,14 @@ import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
-import { simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
+import { OftTools, simulateTransaction } from "@layerzerolabs/lz-solana-sdk-v2";
 import { quoteAcceptOfferBeet } from "./utils/beet-decoder";
 import { Otc } from "./utils/otc";
 import { OtcTools } from "./utils/otc-tools";
 import { AmountsLD, Token } from "./config/constants";
 import { assert } from "chai";
 import { ACCEPT_OFFER_AMOUNTS } from "../helpers/constants";
+import { getRemainings } from "./utils/transfer";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -27,15 +28,17 @@ describe("Accept Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
-    const { seller, offer } = await OtcTools.createOffer(otc, {
-      srcToken: Token.SOL,
-      dstToken: Token.SOL,
-    });
+    const seller = Keypair.generate();
+    await OtcTools.topUpAccounts(otc, seller);
+    const offer = await OtcTools.createOffer(otc, seller);
     accounts = {
       otcConfig: otc.deriver.config(),
       seller,
       offer,
     };
+  });
+  after(async () => {
+    await getRemainings(connection, [accounts.seller], wallet.publicKey);
   });
 
   describe("Quote Accept Offer", () => {

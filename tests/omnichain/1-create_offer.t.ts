@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
 import {
@@ -22,8 +22,14 @@ import {
   AmountsLD,
   ENDPOINT_PROGRAM_ID,
   ExchangeRates,
+  SOLANA_EID,
+  Token,
 } from "./config/constants";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { SRC_EID } from "../helpers/constants";
+import { transfer } from "@solana/spl-token";
+import { generateAccounts, transferSol } from "../helpers/helper";
+import { getRemainings } from "./utils/transfer";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -35,6 +41,7 @@ describe("Create Offer", () => {
   const commitment = "confirmed";
 
   let accounts: {
+    seller: Keypair;
     otcConfig: PublicKey;
   };
 
@@ -44,73 +51,33 @@ describe("Create Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
+    const sth = await OtcTools.generateAccounts(otc, Token.SOL);
+    const seller = sth.seller;
+    await OtcTools.topUpAccounts(otc, seller);
     accounts = {
+      seller,
       otcConfig: otc.deriver.config(),
     };
   });
+  after(async () => {
+    await getRemainings(connection, [accounts.seller], wallet.publicKey);
+  });
 
   it("should quote create offer", async () => {
-    const path: PacketPath = {
-      dstEid: peer.to.eid,
-      srcEid: 40168,
-      sender: hexlify(accounts.otcConfig.toBytes()),
-      receiver: bytes32ToEthAddress(peer.peerAddress),
-    };
-
-    const sendLib = new UlnProgram.Uln(
-      (
-        await endpoint.getSendLibrary(
-          connection,
-          accounts.otcConfig,
-          peer.to.eid,
-        )
-      ).programId,
-    );
-
     const params: CreateOfferParams = {
-      dstSellerAddress: Array.from(wallet.publicKey.toBytes()),
+      dstSellerAddress: Array.from(accounts.seller.publicKey.toBytes()),
       dstEid: peer.to.eid,
       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
       srcAmountLd: new anchor.BN(AmountsLD.SOL),
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
-    const peerAccount = otc.deriver.peer(params.dstEid);
-    const enforcedOptions = otc.deriver.enforcedOptions(params.dstEid);
-
-    const srcSellerAddress = Array.from(wallet.publicKey.toBytes());
-
-    const ix = await program.methods
-      .quoteCreateOffer(srcSellerAddress, params, false)
-      .accounts({
-        otcConfig: accounts.otcConfig,
-        srcTokenMint: null,
-        peer: peerAccount,
-        enforcedOptions,
-      })
-      .remainingAccounts(
-        await endpoint.getQuoteIXAccountMetaForCPI(
-          connection,
-          wallet.publicKey,
-          path,
-          sendLib,
-        ),
-      )
-      .instruction();
-
-    const response = await simulateTransaction(
-      connection,
-      [ix],
-      programId,
-      wallet.publicKey,
-      commitment,
-    );
-
-    const parsed = quoteCreateOfferBeet.read(response, 0);
-
+    const sth = await otc.quoteCreateOffer(params, accounts.seller);
+    const receipt = sth[0];
+    const fee = sth[1];
     const offer = await OtcTools.getOfferFromParams(
       program,
-      srcSellerAddress,
+      Array.from(accounts.seller.publicKey.toBytes()),
       EndpointId.SOLANA_V2_TESTNET,
       params.dstEid,
       Array.from(PublicKey.default.toBytes()),
@@ -119,14 +86,35 @@ describe("Create Offer", () => {
     );
 
     assert(
-      parsed[0].offerId.toString() == offer[1].toString(),
+      receipt.offerId.toString() == offer[1].toString(),
       "src seller address",
     );
     assert(
-      parsed[0].srcAmountLd.toNumber() == params.srcAmountLd.toNumber(),
+      receipt.srcAmountLd.toNumber() == params.srcAmountLd.toNumber(),
       "src amount ld",
     );
-    assert(parsed[1].nativeFee.toNumber() > 0, "native fee");
-    assert(parsed[1].lzTokenFee.toNumber() == 0, "lz token fee");
+    assert(fee.nativeFee.toNumber() > 0, "native fee");
+    assert(fee.lzTokenFee.toNumber() == 0, "lz token fee");
+  });
+
+  it("should create offer", async function () {
+    const offer = await OtcTools.createOffer(otc, accounts.seller, {
+      dstSeller: Array.from(accounts.seller.publicKey.toBytes()),
+    });
+
+    const fethched_offer = await program.account.offer.fetch(offer[0]);
+    assert(
+      fethched_offer.srcSellerAddress.toString() ==
+        Array.from(accounts.seller.publicKey.toBytes()).toString(),
+      "src seller address",
+    );
+    assert(
+      fethched_offer.dstSellerAddress.toString() ==
+        Array.from(accounts.seller.publicKey.toBytes()).toString(),
+      "Dst buyer address",
+    );
+    //console.log(fethched_offer.dstEid);
+    assert(fethched_offer.dstEid == 40231, "dst eid");
+    assert(fethched_offer.srcEid == SOLANA_EID, "srcE eid");
   });
 });
