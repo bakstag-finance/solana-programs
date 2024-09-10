@@ -106,6 +106,7 @@ export class Otc {
 
   async createOffer(
     params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"],
+    messagingFee: MessagingFee,
     seller: Keypair,
     srcTokenMint: PublicKey | null = null, // required for src spl token
   ): Promise<[PublicKey, number[]]> {
@@ -176,14 +177,16 @@ export class Otc {
         ]
       : [null, null, []];
 
-    const messagingFee = await this.quoteCreateOffer(
-      params,
-      seller,
-      srcTokenMint,
-    );
+
+    // const messagingFee = await this.quoteCreateOffer(
+    //   params,
+    //   seller,
+    //   srcTokenMint,
+    // );
 
     const create = await this.program.methods
-      .createOffer(params, messagingFee[1])
+      .createOffer(params, messagingFee)
+
       .accounts({
         seller: seller.publicKey,
         offer: offer[0],
