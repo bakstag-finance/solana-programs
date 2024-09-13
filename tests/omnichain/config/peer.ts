@@ -72,7 +72,7 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
     optionalDvns: [],
   },
   receiveUlnConfig: {
-    confirmations: 10,
+    confirmations: 1,
     requiredDvnCount: 1,
     optionalDvnCount: 0,
     optionalDvnThreshold: 0,
@@ -87,11 +87,11 @@ export const solanaToArbSepConfig: SolanaPeerConfig = {
     maxMessageSize: 10000,
   },
   sendOptions: Options.newOptions()
-    .addExecutorLzReceiveOption(65000, 0)
+    .addExecutorLzReceiveOption(1_000_000, 0)
     .addExecutorOrderedExecutionOption()
     .toBytes(),
   sendAndCallOptions: Options.newOptions()
-    .addExecutorLzReceiveOption(65000, 0)
-    .addExecutorComposeOption(0, 50000, 0)
+    .addExecutorLzReceiveOption(1_000_000, 0)
+    .addExecutorComposeOption(0, 1_000_000, 0)
     .toBytes(),
 };

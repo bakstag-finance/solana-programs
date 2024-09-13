@@ -8,8 +8,8 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
   243, 60, 212, 163, 223, 37, 234, 162, 211, 245, 61, 253, 139, 80,
 ]);
 
-export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
-
+// export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
+export const PEER = "0xBcA736Bdf0711b46e5C98Cd626f7c6A45F56BA88"; // otc market arbitrum sepolia
 export const COMMITMENT = "confirmed";
 export const SOLANA_EID = 40168;
 

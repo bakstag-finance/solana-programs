@@ -177,7 +177,6 @@ export class Otc {
         ]
       : [null, null, []];
 
-
     // const messagingFee = await this.quoteCreateOffer(
     //   params,
     //   seller,
@@ -229,6 +228,8 @@ export class Otc {
       },
       COMMITMENT,
     );
+
+    console.log("Create offer tx signature:", transactionSignature);
 
     return offer;
   }
