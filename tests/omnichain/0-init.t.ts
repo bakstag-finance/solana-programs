@@ -13,6 +13,7 @@ import {
   EndpointProgram,
   OftTools,
   SetConfigType,
+  simulateTransaction,
 } from "@layerzerolabs/lz-solana-sdk-v2";
 
 import { hexlify } from "ethers/lib/utils";
@@ -24,6 +25,9 @@ import {
   ENDPOINT_PROGRAM_ID,
   TREASURY_SECRET_KEY,
 } from "./config/constants";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+
+export type LzReceiveParams = anchor.IdlTypes<OtcMarket>["LzReceiveParams"];
 
 describe("Omnichain", () => {
   const provider = anchor.AnchorProvider.env();
@@ -56,6 +60,13 @@ describe("Omnichain", () => {
 
   it("should log solana peer", async () => {
     console.log(hexlify(accounts.otcConfig.toBytes()));
+    console.log(
+      hexlify(
+        Options.newOptions()
+          .addExecutorLzReceiveOption(1 * 10 ** 6, 1500_000)
+          .toBytes(),
+      ),
+    );
   });
 
   describe("Initialize", () => {
@@ -199,6 +210,65 @@ describe("Omnichain", () => {
       await sendAndConfirmTransaction(connection, tx, [wallet.payer], {
         commitment,
       });
+    });
+
+    it("shold return account from LzReceiveTypes", async () => {
+      const payload =
+        "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
+
+      const payloadBytes = Buffer.from(payload.slice(2), "hex");
+      const params: LzReceiveParams = {
+        srcEid: 40168,
+        sender: Array.from(wallet.publicKey.toBytes()),
+        nonce: new anchor.BN(1),
+        guid: Array.from(wallet.publicKey.toBytes()),
+        message: payloadBytes,
+        extraData: Buffer.from(""),
+      };
+
+      const ix = await program.methods
+        .lzReceiveTypes(params)
+        .accounts({
+          otcConfig: accounts.otcConfig,
+        })
+        .instruction();
+
+      const response = await simulateTransaction(
+        connection,
+        [ix],
+        program.programId,
+        wallet.publicKey,
+        COMMITMENT,
+      );
+
+      console.log(response);
+    });
+    it("should add offer lz receive create offer", async () => {
+      const payload =
+        "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
+
+      const payloadBytes = Buffer.from(payload.slice(2), "hex");
+      const params: LzReceiveParams = {
+        srcEid: 40168,
+        sender: Array.from(wallet.publicKey.toBytes()),
+        nonce: new anchor.BN(1),
+        guid: Array.from(wallet.publicKey.toBytes()),
+        message: payloadBytes,
+        extraData: Buffer.from(""),
+      };
+      program.methods
+        .lzReceive(params)
+        .accounts({
+          payer: wallet.publicKey,
+          offer: new PublicKey(
+            Buffer.from(
+              "008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a",
+              "hex",
+            ),
+          ),
+        })
+        .signers([wallet.payer])
+        .rpc();
     });
   });
 
