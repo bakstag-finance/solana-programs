@@ -1,20 +1,23 @@
 use anchor_lang::prelude::*;
 
-pub mod msg_codec;
 pub mod errors;
 pub mod events;
 mod instructions;
+pub mod msg_codec;
 pub mod state;
 
-use msg_codec::*;
 use errors::*;
 use events::*;
 use instructions::*;
+use msg_codec::*;
 use state::*;
 
-use oapp::endpoint::{ MessagingFee, MessagingReceipt };
+use oapp::{
+    endpoint::{MessagingFee, MessagingReceipt},
+    LzReceiveParams,
+};
 
-declare_id!("BvL2DkgodBPt1CnAYMNBxxHQV5eYuscDZzkPSr8CnFPb");
+declare_id!("BiS4YN1KayRcMftmhXBP1ZSQqC17axypsKF5r5ec21Ud");
 
 #[program]
 pub mod otc_market {
@@ -33,7 +36,7 @@ pub mod otc_market {
     /// see [set_enforced_options]
     pub fn set_enforced_options(
         mut ctx: Context<SetEnforcedOptions>,
-        params: SetEnforcedOptionsParams
+        params: SetEnforcedOptionsParams,
     ) -> Result<()> {
         SetEnforcedOptions::apply(&mut ctx, &params)
     }
@@ -56,7 +59,7 @@ pub mod otc_market {
         dst_eid: u32,
         src_token_address: [u8; 32],
         dst_token_address: [u8; 32],
-        exchange_rate_sd: u64
+        exchange_rate_sd: u64,
     ) -> Result<[u8; 32]> {
         HashOffer::apply(
             &src_seller_address,
@@ -64,7 +67,7 @@ pub mod otc_market {
             dst_eid,
             &src_token_address,
             &dst_token_address,
-            exchange_rate_sd
+            exchange_rate_sd,
         )
     }
 
@@ -73,7 +76,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteCreateOffer>,
         src_seller_address: [u8; 32],
         params: CreateOfferParams,
-        pay_in_lz_token: bool
+        pay_in_lz_token: bool,
     ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params, pay_in_lz_token)
     }
@@ -82,7 +85,7 @@ pub mod otc_market {
     pub fn create_offer(
         mut ctx: Context<CreateOffer>,
         params: CreateOfferParams,
-        fee: MessagingFee
+        fee: MessagingFee,
     ) -> Result<(CreateOfferReceipt, MessagingReceipt)> {
         CreateOffer::apply(&mut ctx, &params, &fee)
     }
@@ -92,7 +95,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteAcceptOffer>,
         dst_buyer_address: [u8; 32],
         params: AcceptOfferParams,
-        pay_in_lz_token: bool
+        pay_in_lz_token: bool,
     ) -> Result<(AcceptOfferReceipt, MessagingFee)> {
         QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params, pay_in_lz_token)
     }
@@ -100,16 +103,17 @@ pub mod otc_market {
     /// see [accept_offer]
     pub fn accept_offer(
         mut ctx: Context<AcceptOffer>,
-        params: AcceptOfferParams
-    ) -> Result<AcceptOfferReceipt> {
-        AcceptOffer::apply(&mut ctx, &params)
+        params: AcceptOfferParams,
+        fee: MessagingFee,
+    ) -> Result<(AcceptOfferReceipt, MessagingReceipt)> {
+        AcceptOffer::apply(&mut ctx, &params, &fee)
     }
 
     /// see [quote_cancel_offer]
     pub fn quote_cancel_offer(
         mut ctx: Context<QuoteCancelOfferOrder>,
         src_seller_address: [u8; 32],
-        offer_id: [u8; 32]
+        offer_id: [u8; 32],
     ) -> Result<()> {
         QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &offer_id)
     }
@@ -117,5 +121,16 @@ pub mod otc_market {
     /// see [cancel_offer]
     pub fn cancel_offer(mut ctx: Context<CancelOffer>, offer_id: [u8; 32]) -> Result<()> {
         CancelOffer::apply(&mut ctx, &offer_id)
+    }
+
+    pub fn lz_receive(mut ctx: Context<LzReceive>, params: LzReceiveParams) -> Result<()> {
+        LzReceive::apply(&mut ctx, &params)
+    }
+
+    pub fn lz_receive_types(
+        ctx: Context<LzReceiveTypes>,
+        params: LzReceiveParams,
+    ) -> Result<Vec<oapp::endpoint_cpi::LzAccount>> {
+        LzReceiveTypes::apply(&ctx, &params)
     }
 }
