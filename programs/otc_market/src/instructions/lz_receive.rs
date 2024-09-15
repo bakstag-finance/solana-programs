@@ -31,6 +31,8 @@ pub struct LzReceive<'info> {
 
 impl LzReceive<'_> {
     pub fn apply(ctx: &mut Context<LzReceive>, params: &LzReceiveParams) -> Result<()> {
+        msg!("Hello in receive");
+
         const ERROR: &'static str = "Slice with incorrect length";
         let offer: Offer = Offer {
             src_seller_address: params.message[33..65].try_into().expect(&ERROR),
@@ -62,6 +64,7 @@ impl LzReceive<'_> {
             src_amount_sd: offer.src_amount_sd,
             exchange_rate_sd: offer.exchange_rate_sd,
         });
+        msg!("Receive done");
 
         Ok(())
     }

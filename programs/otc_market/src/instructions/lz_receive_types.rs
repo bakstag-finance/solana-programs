@@ -26,6 +26,7 @@ impl LzReceiveTypes<'_> {
         ctx: &Context<LzReceiveTypes>,
         params: &LzReceiveParams,
     ) -> Result<Vec<LzAccount>> {
+        msg!("Hello in types");
         const ERROR: &'static str = "Slice with incorrect length";
 
         let otc = &ctx.accounts.otc_config;
@@ -112,6 +113,7 @@ impl LzReceiveTypes<'_> {
         //     );
         //     accounts.extend(accounts_for_composing);
         // }
+        msg!("types done");
 
         Ok(accounts)
     }
