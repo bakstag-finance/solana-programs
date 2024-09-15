@@ -43,4 +43,11 @@ export class OtcPdaDeriver {
       this.programId,
     )[0];
   }
+
+  lzReceiveTypesAccounts(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from("LzReceiveTypes", "utf8"), this.config().toBytes()],
+      this.programId,
+    )[0];
+  }
 }
