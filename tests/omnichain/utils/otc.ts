@@ -21,7 +21,12 @@ import {
 } from "@layerzerolabs/lz-solana-sdk-v2";
 import { COMMITMENT, ENDPOINT_PROGRAM_ID, PEER } from "../config/constants";
 import { hexlify } from "ethers/lib/utils";
-import { MessagingFee, quoteCreateOfferBeet } from "./beet-decoder";
+import {
+  MessagingFee,
+  quoteAcceptOfferBeet,
+  quoteCreateOfferBeet,
+} from "./beet-decoder";
+import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -232,5 +237,75 @@ export class Otc {
     console.log("Create offer tx signature:", transactionSignature);
 
     return offer;
+  }
+
+  async quoteAcceptOffer(
+    params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"],
+    buyer: Keypair, // dst buyer with regards to offer
+  ): Promise<[anchor.IdlTypes<OtcMarket>["AcceptOfferReceipt"], MessagingFee]> {
+    const offerAddress = PublicKey.findProgramAddressSync(
+      [Buffer.from(params.offerId)],
+      this.program.programId,
+    )[0];
+    const offerAccount = await this.program.account.offer.fetch(offerAddress);
+
+    const dstEid = offerAccount.srcEid; // dst with regards to this otc
+    const srcEid = offerAccount.dstEid; // src with regards to this otc
+
+    const crosschain = offerAccount.srcEid !== offerAccount.dstEid;
+
+    const otcConfig = this.deriver.config();
+
+    const [peer, enforcedOptions, remainingAccounts] = crosschain
+      ? [
+          this.deriver.peer(dstEid),
+          this.deriver.enforcedOptions(dstEid),
+          await this.endpoint.getQuoteIXAccountMetaForCPI(
+            this.connection,
+            buyer.publicKey,
+            {
+              dstEid,
+              srcEid,
+              sender: hexlify(otcConfig.toBytes()),
+              receiver: PEER,
+            },
+            new UlnProgram.Uln(
+              (
+                await this.endpoint.getSendLibrary(
+                  this.connection,
+                  otcConfig,
+                  dstEid,
+                )
+              ).programId,
+            ),
+          ),
+        ]
+      : [null, null, []];
+
+    const ix = await this.program.methods
+      .quoteAcceptOffer(
+        Array.from(addressToBytes32(buyer.publicKey.toBase58())),
+        params,
+        false,
+      )
+      .accounts({
+        otcConfig,
+        offer: offerAddress,
+        dstTokenMint: null, // TODO: fix
+        peer,
+        enforcedOptions,
+      })
+      .remainingAccounts(remainingAccounts)
+      .instruction();
+
+    const response = await simulateTransaction(
+      this.connection,
+      [ix],
+      this.program.programId,
+      buyer.publicKey,
+      COMMITMENT,
+    );
+
+    return quoteAcceptOfferBeet.read(response, 0);
   }
 }
