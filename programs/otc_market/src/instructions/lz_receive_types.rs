@@ -15,6 +15,7 @@ pub struct LzReceiveTypes<'info> {
 // account structure
 // account 0 - payer (executor)
 // account 1 - offer
+// account 2 - otc_config
 // account 9 - system program
 // account 10 - event authority
 // account 11 - this program
@@ -33,16 +34,11 @@ impl LzReceiveTypes<'_> {
 
         let (offer, _) = Pubkey::find_program_address(
             &[&<&[u8] as TryInto<Vec<u8>>>::try_into(&params.message[1..33]).expect(&ERROR)],
-            // &[&Offer::hash_offer(
-            //     params.message[33..65].try_into().expect(&ERROR),
-            //     u32::from_be_bytes(params.message[97..101].try_into().expect(&ERROR)),
-            //     u32::from_be_bytes(params.message[101..105].try_into().expect(&ERROR)),
-            //     params.message[105..137].try_into().expect(&ERROR),
-            //     params.message[137..169].try_into().expect(&ERROR),
-            //     u64::from_be_bytes(params.message[177..185].try_into().expect(&ERROR)),
-            // )],
             ctx.program_id,
         );
+
+        let (otc_config, _) = Pubkey::find_program_address(&[OtcConfig::OTC_SEED], ctx.program_id);
+
         let mut accounts = vec![
             LzAccount {
                 pubkey: Pubkey::default(),
@@ -54,6 +50,11 @@ impl LzReceiveTypes<'_> {
                 is_signer: false,
                 is_writable: true,
             }, // 1
+            LzAccount {
+                pubkey: otc_config,
+                is_signer: false,
+                is_writable: false,
+            }, // 2
         ];
 
         // account 9..11

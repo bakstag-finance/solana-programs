@@ -17,7 +17,7 @@ pub struct LzReceive<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         seeds = [
             &params.message[1..33],
@@ -26,6 +26,10 @@ pub struct LzReceive<'info> {
         bump
     )]
     pub offer: Account<'info, Offer>,
+
+    #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
+    pub otc_config: Account<'info, OtcConfig>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -51,6 +55,24 @@ impl LzReceive<'_> {
 
         // store, hash offer
         let offer_id = ctx.accounts.offer.init(&offer); // more efficient that set_inner
+
+        let seeds: &[&[u8]] = &[OtcConfig::OTC_SEED, &[ctx.accounts.otc_config.bump]];
+
+        let accounts_for_clear = &ctx.remaining_accounts[0..Clear::MIN_ACCOUNTS_LEN];
+        let _ = oapp::endpoint_cpi::clear(
+            ctx.accounts.otc_config.endpoint_program,
+            ctx.accounts.otc_config.key(),
+            accounts_for_clear,
+            seeds,
+            ClearParams {
+                receiver: ctx.accounts.otc_config.key(),
+                src_eid: params.src_eid,
+                sender: params.sender,
+                nonce: params.nonce,
+                guid: params.guid,
+                message: params.message.clone(),
+            },
+        )?;
 
         // emit event
         emit_cpi!(OfferCreated {
