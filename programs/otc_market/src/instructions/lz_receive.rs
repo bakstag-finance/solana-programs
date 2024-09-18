@@ -1,5 +1,5 @@
 use crate::*;
-use oapp::endpoint::{ cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext };
+use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -37,23 +37,14 @@ pub struct LzReceive<'info> {
 
 impl LzReceive<'_> {
     pub fn apply(ctx: &mut Context<LzReceive>, params: &LzReceiveParams) -> Result<()> {
-        let offer: Offer = decode_offer_created(&params.message, ctx.bumps.offer);
+        let msg_type = get_message_type(&params.message)?;
 
-        // store, hash offer
-        let offer_id = ctx.accounts.offer.init(&offer);
-
-        // emit event
-        emit_cpi!(OfferCreated {
-            offer_id,
-            src_seller_address: offer.src_seller_address,
-            dst_seller_address: offer.dst_seller_address,
-            src_eid: offer.src_eid,
-            dst_eid: offer.dst_eid,
-            src_token_address: offer.src_token_address,
-            dst_token_address: offer.dst_token_address,
-            src_amount_sd: offer.src_amount_sd,
-            exchange_rate_sd: offer.exchange_rate_sd,
-        });
+        match msg_type {
+            Message::OfferCreated => {
+                receive_offer_created(ctx, &params.message)?;
+            }
+            _ => (),
+        };
 
         // clear
         oapp::endpoint_cpi::clear(
@@ -68,7 +59,7 @@ impl LzReceive<'_> {
                 nonce: params.nonce,
                 guid: params.guid,
                 message: params.message.clone(),
-            }
+            },
         )?;
 
         Ok(())

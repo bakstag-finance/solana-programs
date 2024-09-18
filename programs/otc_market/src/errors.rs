@@ -13,4 +13,5 @@ pub enum OtcError {
     InvalidTreasury,
     OnlySeller,
     InvalidSender,
+    InvalidMessageType,
 }

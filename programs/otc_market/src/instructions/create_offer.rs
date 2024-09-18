@@ -1,12 +1,11 @@
 use crate::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token_interface::{ Mint, TokenAccount, TokenInterface },
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use oapp::endpoint::{
-    instructions::SendParams as EndpointSendParams,
-    MessagingReceipt,
-    MessagingFee,
+use oapp::{
+    endpoint::{instructions::SendParams as EndpointSendParams, MessagingFee, MessagingReceipt},
+    endpoint_cpi::LzAccount,
 };
 
 #[event_cpi]
@@ -95,23 +94,23 @@ impl CreateOffer<'_> {
     pub fn apply(
         ctx: &mut Context<CreateOffer>,
         params: &CreateOfferParams,
-        fee: &MessagingFee
+        fee: &MessagingFee,
     ) -> Result<(CreateOfferReceipt, MessagingReceipt)> {
         let src_token_address = OtcConfig::get_token_address(ctx.accounts.src_token_mint.as_ref());
 
         let (src_amount_sd, src_amount_ld): (u64, u64);
         {
-            let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
-                ctx.accounts.src_token_mint.as_ref()
-            );
-            (src_amount_sd, src_amount_ld) = OtcConfig::remove_dust(
-                params.src_amount_ld,
-                decimal_conversion_rate
-            );
+            let decimal_conversion_rate =
+                OtcConfig::get_decimal_conversion_rate(ctx.accounts.src_token_mint.as_ref());
+            (src_amount_sd, src_amount_ld) =
+                OtcConfig::remove_dust(params.src_amount_ld, decimal_conversion_rate);
         }
 
         // validate pricing
-        require!(src_amount_sd != 0 && params.exchange_rate_sd != 0, OtcError::InvalidPricing);
+        require!(
+            src_amount_sd != 0 && params.exchange_rate_sd != 0,
+            OtcError::InvalidPricing
+        );
 
         let offer: Offer = Offer {
             src_seller_address: ctx.accounts.seller.key().to_bytes(),
@@ -148,7 +147,9 @@ impl CreateOffer<'_> {
             // crosschain offer
 
             let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
-            let enforced_options = ctx.accounts.enforced_options
+            let enforced_options = ctx
+                .accounts
+                .enforced_options
                 .as_ref()
                 .expect(OtcConfig::ERROR_MSG);
 
@@ -166,7 +167,7 @@ impl CreateOffer<'_> {
                     options: enforced_options.get_enforced_options(&None),
                     native_fee: fee.native_fee,
                     lz_token_fee: fee.lz_token_fee,
-                }
+                },
             )?;
         }
 
@@ -178,7 +179,7 @@ impl CreateOffer<'_> {
             ctx.accounts.src_seller_ata.as_ref(),
             ctx.accounts.src_token_mint.as_ref(),
             ctx.accounts.src_escrow_ata.as_ref(),
-            None
+            None,
         )?;
 
         Ok((
@@ -189,6 +190,42 @@ impl CreateOffer<'_> {
             receipt,
         ))
     }
+}
+
+pub fn receive_offer_created_types(
+    ctx: &Context<LzReceiveTypes>,
+    params: &LzReceiveParams,
+) -> Vec<LzAccount> {
+    // accounts 2..3
+    let (offer, _) = Pubkey::find_program_address(&[&offer_id(&params.message)], ctx.program_id);
+
+    vec![LzAccount {
+        pubkey: offer,
+        is_signer: false,
+        is_writable: true,
+    }]
+}
+
+pub fn receive_offer_created(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -> Result<()> {
+    let offer: Offer = decode_offer_created(message, ctx.bumps.offer);
+
+    // store, hash offer
+    let offer_id = ctx.accounts.offer.init(&offer);
+
+    // emit event
+    emit_cpi!(OfferCreated {
+        offer_id,
+        src_seller_address: offer.src_seller_address,
+        dst_seller_address: offer.dst_seller_address,
+        src_eid: offer.src_eid,
+        dst_eid: offer.dst_eid,
+        src_token_address: offer.src_token_address,
+        dst_token_address: offer.dst_token_address,
+        src_amount_sd: offer.src_amount_sd,
+        exchange_rate_sd: offer.exchange_rate_sd,
+    });
+
+    Ok(())
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
