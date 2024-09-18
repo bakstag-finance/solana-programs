@@ -12,4 +12,5 @@ pub enum OtcError {
     InvalidDstSeller,
     InvalidTreasury,
     OnlySeller,
+    InvalidSender,
 }

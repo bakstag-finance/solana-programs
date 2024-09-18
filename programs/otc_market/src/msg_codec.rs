@@ -64,3 +64,22 @@ pub fn build_accept_offer_payload(
         dst_buyer_address,
     ].concat()
 }
+
+pub fn offer_id(message: &[u8]) -> [u8; 32] {
+    message[1..33].try_into().unwrap()
+}
+
+pub fn decode_offer_created(message: &[u8], bump: u8) -> Offer {
+    Offer {
+        src_seller_address: message[33..65].try_into().unwrap(),
+        dst_seller_address: message[65..97].try_into().unwrap(),
+        src_eid: u32::from_be_bytes(message[97..101].try_into().unwrap()),
+        dst_eid: u32::from_be_bytes(message[101..105].try_into().unwrap()),
+        src_token_address: message[105..137].try_into().unwrap(),
+        dst_token_address: message[137..169].try_into().unwrap(),
+        src_amount_sd: u64::from_be_bytes(message[169..177].try_into().unwrap()),
+        exchange_rate_sd: u64::from_be_bytes(message[177..185].try_into().unwrap()),
+
+        bump,
+    }
+}

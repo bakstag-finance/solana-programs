@@ -17,7 +17,7 @@ use oapp::{
     LzReceiveParams,
 };
 
-declare_id!("BiS4YN1KayRcMftmhXBP1ZSQqC17axypsKF5r5ec21Ud");
+declare_id!("DRYmAGUxYC75thLBDaR9biCHFeTijd2eAFJhvsPKMB7B");
 
 #[program]
 pub mod otc_market {
