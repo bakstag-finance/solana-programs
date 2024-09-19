@@ -32,6 +32,7 @@ import { hexlify } from "ethers/lib/utils";
 import { getRemainings } from "./utils/transfer";
 import { solanaToArbSepConfig } from "./config/peer";
 import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
+import { topUp } from "../helpers/helper";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -46,55 +47,42 @@ describe("Accept Offer", () => {
     treasury: PublicKey;
     otcConfig: PublicKey;
     seller: Keypair;
+    buyer: Keypair;
     offer: [PublicKey, number[]];
   };
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
     const seller = Keypair.generate();
-    await OtcTools.topUpAccounts(otc, seller);
+    const buyer = Keypair.generate();
+    await OtcTools.topUpAccounts(otc, seller, buyer);
     const offer = await OtcTools.createOffer(otc, seller);
     accounts = {
       treasury: Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey,
       otcConfig: otc.deriver.config(),
       seller,
+      buyer,
       offer,
     };
   });
   after(async () => {
-    await getRemainings(connection, [accounts.seller], wallet.publicKey);
+    await getRemainings(
+      connection,
+      [accounts.seller, accounts.buyer],
+      wallet.publicKey,
+    );
   });
 
   describe("Quote Accept Offer", () => {
     it("should quote accept monochain sol-sol offer", async () => {
       const offer = await program.account.offer.fetch(accounts.offer[0]);
-
-      const buyer = Array.from(Keypair.generate().publicKey.toBytes());
+      const buyer = Array.from(accounts.buyer.publicKey.toBytes());
       const params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"] = {
         offerId: accounts.offer[1],
         srcAmountSd: offer.srcAmountSd,
         srcBuyerAddress: buyer,
       };
-
-      const ix = await program.methods
-        .quoteAcceptOffer(buyer, params, false)
-        .accounts({
-          otcConfig: accounts.otcConfig,
-          offer: accounts.offer[0],
-          dstTokenMint: null,
-          peer: null,
-          enforcedOptions: null,
-        })
-        .instruction();
-      const response = await simulateTransaction(
-        connection,
-        [ix],
-        programId,
-        wallet.publicKey,
-        commitment,
-      );
-
-      const parsed = quoteAcceptOfferBeet.read(response, 0);
+      const parsed = await otc.quoteAcceptOffer(params, accounts.buyer);
       assert(parsed[0].dstAmountLd.toNumber() == AmountsLD.SOL, "dstAmount");
       assert(
         parsed[0].feeLd.toNumber() == AmountsLD.SOL / 100,
@@ -103,145 +91,75 @@ describe("Accept Offer", () => {
       assert(parsed[1].nativeFee.toNumber() == 0, "native fee, monochain");
       assert(parsed[1].lzTokenFee.toNumber() == 0, "lz token fee");
     });
-
-    it("should accept cross chain offer", async () => {
+    it("should quote accept cross chain offer", async () => {
       const offerId =
-        "82c664ebb2fee3a734f882b88391e755fd0f02a3d81ec86b41bbac8df92de623";
-
+        "f9532dd755d15dee3e6b5cec2af4b20fe2f995e6741dc48b19d6846ac7875562";
+      const srcBuyerAddress = "C37713ef41Aff1A7ac1c3D02f6f0B3a57F8A3091";
       const offerAddress = PublicKey.findProgramAddressSync(
         [Buffer.from(offerId, "hex")],
         program.programId,
       )[0];
-
       const offerAccount = await program.account.offer.fetch(offerAddress);
-      const buyer = Array.from(addressToBytes32(wallet.publicKey.toBase58()));
-
       const params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"] = {
         offerId: Array.from(Buffer.from(offerId, "hex")),
         srcAmountSd: offerAccount.srcAmountSd,
-        srcBuyerAddress: buyer,
+        srcBuyerAddress: Array.from(Buffer.from(srcBuyerAddress, "hex")),
       };
-
-      const dstEid = solanaToArbSepConfig.to.eid;
-
-      const peerAccount = otc.deriver.peer(dstEid);
-      const enforcedOptions = otc.deriver.enforcedOptions(dstEid);
-
-      const quote_rem_accs = await otc.endpoint.getQuoteIXAccountMetaForCPI(
+      const parsed = await otc.quoteAcceptOffer(params, accounts.buyer);
+      const dstAmount = parsed[0].dstAmountLd.toNumber();
+      assert(
+        parsed[0].feeLd.toNumber() == dstAmount / 100,
+        "protocol fee amount",
+      );
+      assert(parsed[1].nativeFee.toNumber() > 0, "native fee");
+      assert(parsed[1].lzTokenFee.toNumber() == 0, "lz token fee");
+    });
+    it("should create lookup table ", async () => {
+      console.log(await connection.getBalance(wallet.publicKey));
+      const addrs = [
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+      ];
+      const tableAddr = await OtcTools.createLookUpTable(
         connection,
-        wallet.publicKey,
-        {
-          dstEid: dstEid,
-          srcEid: SOLANA_EID,
-          sender: hexlify(accounts.otcConfig.toBytes()),
-          receiver: PEER,
-        },
-        new UlnProgram.Uln(
-          (
-            await otc.endpoint.getSendLibrary(
-              otc.connection,
-              accounts.otcConfig,
-              dstEid,
-            )
-          ).programId,
-        ),
+        wallet.payer,
+        addrs,
       );
+      console.log(await connection.getBalance(wallet.publicKey));
+      await OtcTools.waitForNewBlock(connection, 2);
+      await OtcTools.deactivateLookUpTable(connection, tableAddr, wallet.payer);
+      console.log(await connection.getBalance(wallet.publicKey));
+      await OtcTools.waitForNewBlock(connection, 2);
+      await OtcTools.closeLookUpTable(connection, tableAddr, wallet.payer);
+      console.log(await connection.getBalance(wallet.publicKey));
+    });
+    it("should accept crosschain offer", async () => {
+      const offerId =
+        "f9532dd755d15dee3e6b5cec2af4b20fe2f995e6741dc48b19d6846ac7875562";
+      const srcBuyerAddress = "C37713ef41Aff1A7ac1c3D02f6f0B3a57F8A3091";
+      const offerAddress = PublicKey.findProgramAddressSync(
+        [Buffer.from(offerId, "hex")],
+        program.programId,
+      )[0];
+      const offerAccount = await program.account.offer.fetch(offerAddress);
+      const params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"] = {
+        offerId: Array.from(Buffer.from(offerId, "hex")),
+        srcAmountSd: offerAccount.srcAmountSd,
+        srcBuyerAddress: Array.from(Buffer.from(srcBuyerAddress, "hex")),
+      };
+      const parsed = await otc.quoteAcceptOffer(params, accounts.buyer);
 
-      const ix = await program.methods
-        .quoteAcceptOffer(buyer, params, false)
-        .accounts({
-          otcConfig: accounts.otcConfig,
-          offer: offerAddress,
-          dstTokenMint: null,
-          peer: peerAccount,
-          enforcedOptions: enforcedOptions,
-        })
-        .remainingAccounts(quote_rem_accs)
-        .instruction();
+      const fee = parsed[1];
 
-      const response = await simulateTransaction(
-        connection,
-        [ix],
-        programId,
-        wallet.publicKey,
-        commitment,
-      );
-
-      const parsed = quoteAcceptOfferBeet.read(response, 0);
-
-      const remainingAccounts = await otc.endpoint.getSendIXAccountMetaForCPI(
-        connection,
-        wallet.publicKey,
-        {
-          dstEid: dstEid,
-          srcEid: SOLANA_EID,
-          sender: hexlify(accounts.otcConfig.toBytes()),
-          receiver: PEER,
-        },
-        new UlnProgram.Uln(
-          (
-            await otc.endpoint.getSendLibrary(
-              otc.connection,
-              accounts.otcConfig,
-              dstEid,
-            )
-          ).programId,
-        ),
-      );
-
-      const accept = await program.methods
-        .acceptOffer(params, parsed[1])
-        .accounts({
-          buyer: wallet.publicKey,
-          otcConfig: accounts.otcConfig,
-          offer: offerAddress,
-          dstBuyerAta: null,
-          dstSellerAta: null,
-          dstSeller: wallet.publicKey,
-          dstTreasuryAta: null,
-          treasury: accounts.treasury,
-          escrow: otc.deriver.escrow(),
-          srcEscrowAta: null,
-          dstTokenMint: null,
-          srcBuyerAta: null,
-          srcTokenMint: null,
-          peer: peerAccount,
-          enforcedOptions: enforcedOptions,
-        })
-        .remainingAccounts(remainingAccounts)
-        .transaction();
-
-      const tx = new Transaction().add(
-        ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
-        accept,
-      );
-
-      let { blockhash } = await connection.getLatestBlockhash();
-      const message = new TransactionMessage({
-        payerKey: wallet.publicKey, // Public key of the account that will pay for the transaction
-        recentBlockhash: blockhash, // Latest blockhash
-        instructions: tx.instructions, // Instructions included in transaction
-      }).compileToV0Message();
-
-      const transaction = new VersionedTransaction(message);
-
-      transaction.sign([wallet.payer]);
-
-      const transactionSignature =
-        await connection.sendTransaction(transaction);
-
-      const latestBlockhash = await connection.getLatestBlockhash();
-
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature: transactionSignature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-        },
-        COMMITMENT,
-      );
-
-      console.log("Create offer tx signature:", transactionSignature);
+      await otc.acceptOffer(params, accounts.buyer, fee);
     });
   });
 });

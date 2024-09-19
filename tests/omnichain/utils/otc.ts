@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, web3 } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
 import {
   Connection,
@@ -19,7 +19,13 @@ import {
   simulateTransaction,
   UlnProgram,
 } from "@layerzerolabs/lz-solana-sdk-v2";
-import { COMMITMENT, ENDPOINT_PROGRAM_ID, PEER } from "../config/constants";
+import {
+  COMMITMENT,
+  ENDPOINT_PROGRAM_ID,
+  PEER,
+  SOLANA_EID,
+  TREASURY_SECRET_KEY,
+} from "../config/constants";
 import { hexlify } from "ethers/lib/utils";
 import {
   MessagingFee,
@@ -27,6 +33,7 @@ import {
   quoteCreateOfferBeet,
 } from "./beet-decoder";
 import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
+import { assert } from "chai";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -243,6 +250,9 @@ export class Otc {
     params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"],
     buyer: Keypair, // dst buyer with regards to offer
   ): Promise<[anchor.IdlTypes<OtcMarket>["AcceptOfferReceipt"], MessagingFee]> {
+    const buyerBalance = await this.connection.getBalance(buyer.publicKey);
+    assert(buyerBalance > 0, "Buyer balance should be non zero");
+
     const offerAddress = PublicKey.findProgramAddressSync(
       [Buffer.from(params.offerId)],
       this.program.programId,
@@ -251,6 +261,13 @@ export class Otc {
 
     const dstEid = offerAccount.srcEid; // dst with regards to this otc
     const srcEid = offerAccount.dstEid; // src with regards to this otc
+
+    const dstToken = offerAccount.dstTokenAddress;
+
+    const dstNative =
+      dstToken.toString() == Array.from(PublicKey.default.toBytes()).toString();
+
+    const dstTokenMint = dstNative ? null : new PublicKey(dstToken);
 
     const crosschain = offerAccount.srcEid !== offerAccount.dstEid;
 
@@ -264,8 +281,8 @@ export class Otc {
             this.connection,
             buyer.publicKey,
             {
-              dstEid,
-              srcEid,
+              dstEid: dstEid,
+              srcEid: srcEid,
               sender: hexlify(otcConfig.toBytes()),
               receiver: PEER,
             },
@@ -283,17 +300,13 @@ export class Otc {
       : [null, null, []];
 
     const ix = await this.program.methods
-      .quoteAcceptOffer(
-        Array.from(addressToBytes32(buyer.publicKey.toBase58())),
-        params,
-        false,
-      )
+      .quoteAcceptOffer(Array.from(buyer.publicKey.toBytes()), params, false)
       .accounts({
-        otcConfig,
+        otcConfig: otcConfig,
         offer: offerAddress,
-        dstTokenMint: null, // TODO: fix
-        peer,
-        enforcedOptions,
+        dstTokenMint: dstTokenMint,
+        peer: peer,
+        enforcedOptions: enforcedOptions,
       })
       .remainingAccounts(remainingAccounts)
       .instruction();
@@ -307,5 +320,128 @@ export class Otc {
     );
 
     return quoteAcceptOfferBeet.read(response, 0);
+  }
+
+  async acceptOffer(
+    params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"],
+    buyer: Keypair, // dst buyer with regards to offer
+    fee: MessagingFee,
+  ) {
+    const buyerBalance = await this.connection.getBalance(buyer.publicKey);
+    assert(buyerBalance > 0, "Buyer balance should be non zero");
+
+    const offerAddress = PublicKey.findProgramAddressSync(
+      [Buffer.from(params.offerId)],
+      this.program.programId,
+    )[0];
+    const offerAccount = await this.program.account.offer.fetch(offerAddress);
+
+    const dstEid = offerAccount.srcEid; // dst with regards to this otc
+    const srcEid = offerAccount.dstEid; // src with regards to this otc
+
+    const dstToken = offerAccount.dstTokenAddress;
+
+    const dstNative =
+      dstToken.toString() == Array.from(PublicKey.default.toBytes()).toString();
+
+    const dstTokenMint = dstNative ? null : new PublicKey(dstToken);
+
+    const crosschain = offerAccount.srcEid !== offerAccount.dstEid;
+
+    const otcConfig = this.deriver.config();
+    const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
+
+    const [peer, enforcedOptions, remainingAccounts] = crosschain
+      ? [
+          this.deriver.peer(dstEid),
+          this.deriver.enforcedOptions(dstEid),
+          await this.endpoint.getSendIXAccountMetaForCPI(
+            this.connection,
+            buyer.publicKey,
+            {
+              dstEid: dstEid,
+              srcEid: srcEid,
+              sender: hexlify(otcConfig.toBytes()),
+              receiver: PEER,
+            },
+            new UlnProgram.Uln(
+              (
+                await this.endpoint.getSendLibrary(
+                  this.connection,
+                  otcConfig,
+                  dstEid,
+                )
+              ).programId,
+            ),
+          ),
+        ]
+      : [null, null, []];
+
+    const addresses = [
+      //  buyer.publicKey,
+      //  otcConfig,
+      //  offerAddress,
+
+      //  this.payer.publicKey,
+
+      //  treasury,
+      peer,
+      enforcedOptions,
+    ];
+
+    const lookupTableAddress = await OtcTools.createLookUpTable(
+      this.connection,
+      buyer,
+      addresses,
+      remainingAccounts,
+    );
+
+    // await OtcTools.extendLookUpTable(
+    //   this.connection,
+    //   lookupTableAddress,
+    //   remainingAccounts.map((account) => account.pubkey),
+    //   buyer,
+    // );
+
+    await OtcTools.waitForNewBlock(this.connection, 1);
+
+    const lookupTableAccount = (
+      await this.connection.getAddressLookupTable(lookupTableAddress)
+    ).value;
+
+    if (!lookupTableAccount) {
+      throw new Error("Lookup table not found");
+    }
+
+    const acceptIx = await this.program.methods
+      .acceptOffer(params, fee)
+      .accounts({
+        buyer: buyer.publicKey,
+        otcConfig: otcConfig,
+        offer: offerAddress,
+        dstBuyerAta: null,
+        dstSellerAta: null,
+        dstSeller: this.payer.publicKey,
+        dstTreasuryAta: null,
+        treasury: treasury,
+        dstTokenMint: null,
+        srcBuyerAta: null,
+        srcEscrowAta: null,
+        escrow: null,
+        srcTokenMint: null,
+        peer: null,
+        enforcedOptions: null,
+      })
+      .remainingAccounts(remainingAccounts)
+      .instruction();
+    // .signers([buyer])
+    // .rpc();
+
+    await OtcTools.sendV0Transaction(
+      this.connection,
+      buyer,
+      [acceptIx],
+      [lookupTableAccount],
+    );
   }
 }
