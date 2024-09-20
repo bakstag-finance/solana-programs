@@ -34,6 +34,7 @@ import {
 } from "./beet-decoder";
 import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 import { assert } from "chai";
+import { isNativeToken } from "./is_native_token";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -263,11 +264,9 @@ export class Otc {
     const srcEid = offerAccount.dstEid; // src with regards to this otc
 
     const dstToken = offerAccount.dstTokenAddress;
-
-    const dstNative =
-      dstToken.toString() == Array.from(PublicKey.default.toBytes()).toString();
-
-    const dstTokenMint = dstNative ? null : new PublicKey(dstToken);
+    const dstTokenMint = isNativeToken(dstToken)
+      ? null
+      : new PublicKey(dstToken);
 
     const crosschain = offerAccount.srcEid !== offerAccount.dstEid;
 
@@ -304,7 +303,7 @@ export class Otc {
       .accounts({
         otcConfig: otcConfig,
         offer: offerAddress,
-        dstTokenMint: dstTokenMint,
+        dstTokenMint,
         peer: peer,
         enforcedOptions: enforcedOptions,
       })
