@@ -23,7 +23,6 @@ import {
   COMMITMENT,
   ENDPOINT_PROGRAM_ID,
   PEER,
-  SOLANA_EID,
   TREASURY_SECRET_KEY,
 } from "../config/constants";
 import { hexlify } from "ethers/lib/utils";
@@ -407,22 +406,26 @@ export class Otc {
 
     const acceptIx = await this.program.methods
       .acceptOffer(params, fee)
+      // TODO: fix accounts
       .accounts({
         buyer: buyer.publicKey,
-        otcConfig: otcConfig,
+        otcConfig,
         offer: offerAddress,
+        // src token
+        srcBuyerAta: null,
+        srcEscrowAta: null,
+        escrow: this.deriver.escrow(),
+        srcTokenMint: null,
+        // dst token
         dstBuyerAta: null,
+        dstSeller: new PublicKey(offerAccount.dstSellerAddress),
         dstSellerAta: null,
-        dstSeller: this.payer.publicKey, // TODO: fix
         dstTreasuryAta: null,
         treasury,
         dstTokenMint: null,
-        srcBuyerAta: null,
-        srcEscrowAta: null,
-        escrow: null,
-        srcTokenMint: null,
-        peer: null,
-        enforcedOptions: null,
+        // crosschain
+        peer,
+        enforcedOptions,
       })
       .remainingAccounts(remainingAccounts)
       .instruction();
