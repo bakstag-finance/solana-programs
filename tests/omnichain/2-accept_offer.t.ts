@@ -33,6 +33,8 @@ import { getRemainings } from "./utils/transfer";
 import { solanaToArbSepConfig } from "./config/peer";
 import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 import { topUp } from "../helpers/helper";
+import { V0TransactionTools } from "./utils/v0-transaction-tools";
+import { AccountTools } from "./utils/account-tools";
 
 describe("Accept Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -55,7 +57,7 @@ describe("Accept Offer", () => {
   before(async () => {
     const seller = Keypair.generate();
     const buyer = Keypair.generate();
-    await OtcTools.topUpAccounts(otc, seller, buyer);
+    await AccountTools.topUpAccounts(otc, seller, buyer);
     const offer = await OtcTools.createOffer(otc, seller);
     accounts = {
       treasury: Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey,
@@ -128,17 +130,25 @@ describe("Accept Offer", () => {
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
       ];
-      const tableAddr = await OtcTools.createLookUpTable(
+      const tableAddr = await V0TransactionTools.createLookUpTable(
         connection,
         wallet.payer,
         addrs,
       );
       console.log(await connection.getBalance(wallet.publicKey));
-      await OtcTools.waitForNewBlock(connection, 2);
-      await OtcTools.deactivateLookUpTable(connection, tableAddr, wallet.payer);
+      await V0TransactionTools.waitForNewBlock(connection, 2);
+      await V0TransactionTools.deactivateLookUpTable(
+        connection,
+        tableAddr,
+        wallet.payer,
+      );
       console.log(await connection.getBalance(wallet.publicKey));
-      await OtcTools.waitForNewBlock(connection, 2);
-      await OtcTools.closeLookUpTable(connection, tableAddr, wallet.payer);
+      await V0TransactionTools.waitForNewBlock(connection, 2);
+      await V0TransactionTools.closeLookUpTable(
+        connection,
+        tableAddr,
+        wallet.payer,
+      );
       console.log(await connection.getBalance(wallet.publicKey));
     });
     it("should accept crosschain offer", async () => {

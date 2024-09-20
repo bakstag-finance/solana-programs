@@ -34,7 +34,8 @@ import {
 } from "./beet-decoder";
 import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 import { assert } from "chai";
-import { isNativeToken } from "./is_native_token";
+import { isNativeToken } from "./is-native-token";
+import { V0TransactionTools } from "./v0-transaction-tools";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -339,11 +340,9 @@ export class Otc {
     const srcEid = offerAccount.dstEid; // src with regards to this otc
 
     const dstToken = offerAccount.dstTokenAddress;
-
-    const dstNative =
-      dstToken.toString() == Array.from(PublicKey.default.toBytes()).toString();
-
-    const dstTokenMint = dstNative ? null : new PublicKey(dstToken);
+    const dstTokenMint = isNativeToken(dstToken)
+      ? null
+      : new PublicKey(dstToken);
 
     const crosschain = offerAccount.srcEid !== offerAccount.dstEid;
 
@@ -388,7 +387,7 @@ export class Otc {
       enforcedOptions,
     ];
 
-    const lookupTableAddress = await OtcTools.createLookUpTable(
+    const lookupTableAddress = await V0TransactionTools.createLookUpTable(
       this.connection,
       buyer,
       addresses,
@@ -402,7 +401,7 @@ export class Otc {
     //   buyer,
     // );
 
-    await OtcTools.waitForNewBlock(this.connection, 1);
+    await V0TransactionTools.waitForNewBlock(this.connection, 1);
 
     const lookupTableAccount = (
       await this.connection.getAddressLookupTable(lookupTableAddress)
@@ -433,10 +432,8 @@ export class Otc {
       })
       .remainingAccounts(remainingAccounts)
       .instruction();
-    // .signers([buyer])
-    // .rpc();
 
-    await OtcTools.sendV0Transaction(
+    await V0TransactionTools.sendV0Transaction(
       this.connection,
       buyer,
       [acceptIx],

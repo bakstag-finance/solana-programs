@@ -30,6 +30,7 @@ import { SRC_EID } from "../helpers/constants";
 import { transfer } from "@solana/spl-token";
 import { generateAccounts, transferSol } from "../helpers/helper";
 import { getRemainings } from "./utils/transfer";
+import { AccountTools } from "./utils/account-tools";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -51,9 +52,9 @@ describe("Create Offer", () => {
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
-    const sth = await OtcTools.generateAccounts(otc, Token.SOL);
+    const sth = await AccountTools.generateAccounts(otc, Token.SOL);
     const seller = sth.seller;
-    await OtcTools.topUpAccounts(otc, seller);
+    await AccountTools.topUpAccounts(otc, seller);
     accounts = {
       seller,
       otcConfig: otc.deriver.config(),
