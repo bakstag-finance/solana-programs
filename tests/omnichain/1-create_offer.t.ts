@@ -99,9 +99,11 @@ describe("Create Offer", () => {
   });
 
   it("should create offer", async function () {
-    const offer = await OtcTools.createOffer(otc, accounts.seller, {
-      dstSeller: Array.from(accounts.seller.publicKey.toBytes()),
-    });
+    const offer = await OtcTools.createOffer(
+      otc,
+      accounts.seller,
+      Array.from(accounts.seller.publicKey.toBytes()),
+    );
 
     const fethched_offer = await program.account.offer.fetch(offer[0]);
     assert(

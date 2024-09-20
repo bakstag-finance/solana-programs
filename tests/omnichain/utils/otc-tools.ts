@@ -11,34 +11,24 @@ export class OtcTools {
   static async createOffer(
     otc: Otc,
     srcSeller: Keypair,
-    crosschain?: {
-      dstSeller: number[];
-    },
-    srcToken?: {
-      srcTokenMint: PublicKey;
-    },
-    dstToken?: {
-      dstTokenMint: PublicKey;
-    },
+    dstSeller?: number[],
+    srcToken?: PublicKey,
+    dstToken?: PublicKey,
   ): Promise<[PublicKey, number[]]> {
-    const isCrosschain = !!crosschain;
+    const isCrosschain = !!dstSeller;
 
-    const isSrcTokenNative = !!!srcToken;
-    const isDstTokenNative = !!!dstToken;
+    const isSrcTokenNative = !srcToken;
 
     const [dstEid, dstSellerAddress] = isCrosschain
-      ? [solanaToArbSepConfig.to.eid, crosschain.dstSeller]
+      ? [solanaToArbSepConfig.to.eid, dstSeller]
       : [
           EndpointId.SOLANA_V2_TESTNET,
           Array.from(srcSeller.publicKey.toBytes()),
         ];
 
-    const srcTokenMint = isSrcTokenNative ? null : srcToken.srcTokenMint;
-    const dstTokenMint = isDstTokenNative
-      ? PublicKey.default
-      : dstToken.dstTokenMint;
+    const srcTokenMint = isSrcTokenNative ? null : srcToken;
+    const dstTokenMint = !dstToken ? PublicKey.default : dstToken;
 
-    // create offer
     const params: anchor.IdlTypes<OtcMarket>["CreateOfferParams"] = {
       dstSellerAddress,
       dstEid,
@@ -49,16 +39,13 @@ export class OtcTools {
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
-    const sth = await otc.quoteCreateOffer(params, srcSeller);
-
     const offer = await otc.createOffer(
       params,
-      sth[1],
+      await otc.quoteCreateOffer(params, srcSeller)[1], // fee
       srcSeller,
       srcTokenMint,
     );
 
-    // return
     return offer;
   }
 
