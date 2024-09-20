@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, web3 } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../../target/types/otc_market";
 import {
   Connection,
@@ -10,7 +10,7 @@ import {
   Transaction,
   ComputeBudgetProgram,
 } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { OtcPdaDeriver } from "./otc-pda-deriver";
 import { OtcTools } from "./otc-tools";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
@@ -32,7 +32,6 @@ import {
   quoteAcceptOfferBeet,
   quoteCreateOfferBeet,
 } from "./beet-decoder";
-import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 import { assert } from "chai";
 import { isNativeToken } from "./is-native-token";
 import { V0TransactionTools } from "./v0-transaction-tools";
@@ -191,15 +190,8 @@ export class Otc {
         ]
       : [null, null, []];
 
-    // const messagingFee = await this.quoteCreateOffer(
-    //   params,
-    //   seller,
-    //   srcTokenMint,
-    // );
-
     const create = await this.program.methods
       .createOffer(params, messagingFee)
-
       .accounts({
         seller: seller.publicKey,
         offer: offer[0],
