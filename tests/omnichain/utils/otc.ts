@@ -418,12 +418,46 @@ export class Otc {
       .remainingAccounts(remainingAccounts)
       .instruction();
 
+    const setComputeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    });
+
+    const addresses = acceptIx.keys.map((key) => key.pubkey);
+
     const lookUpTableAddress = await V0TransactionTools.createLookupTable(
       this.connection,
       buyer,
-      acceptIx.keys.map((key) => key.pubkey),
     );
     console.log("look up table address: ", lookUpTableAddress);
+
+    // First batch: 16 addresses (from index 0 to 15)
+    await V0TransactionTools.extendLookUpTable(
+      this.connection,
+      buyer,
+      lookUpTableAddress,
+      addresses.slice(0, 16), // First 16 addresses
+      COMMITMENT,
+    );
+
+    // Second batch: Next 16 addresses (from index 16 to 31)
+    await V0TransactionTools.extendLookUpTable(
+      this.connection,
+      buyer,
+      lookUpTableAddress,
+      addresses.slice(16, 32), // Next 16 addresses
+      COMMITMENT,
+    );
+
+    // Third batch: Last 14 addresses (from index 32 to 45)
+    await V0TransactionTools.extendLookUpTable(
+      this.connection,
+      buyer,
+      lookUpTableAddress,
+      addresses.slice(32, 46), // Last 14 addresses
+      COMMITMENT,
+    );
+
+    await V0TransactionTools.waitForNewBlock(this.connection, 1);
 
     const lookupTableAccount = (
       await this.connection.getAddressLookupTable(lookUpTableAddress)
@@ -433,7 +467,7 @@ export class Otc {
     const tx = await V0TransactionTools.createV0Transaction(
       this.connection,
       buyer.publicKey,
-      [acceptIx],
+      [setComputeLimitIx, acceptIx],
       [lookupTableAccount],
       COMMITMENT,
     );

@@ -37,9 +37,9 @@
 //     const otcPdaDeriver = new OtcPdaDeriver(program.programId);
 //     const otcConfig = otcPdaDeriver.config();
 //     peerAddress = hexlify(otcConfig.toBytes());
-//     const exchangeRateSD =
-//       Math.floor(Math.random() * (10 * 10 ** 6 - 0.001 * 10 ** 6 + 1)) +
-//       0.001 * 10 ** 6;
+//     const exchangeRateSD = 1 * 10 ** 6;
+//     // Math.floor(Math.random() * (10 * 10 ** 6 - 0.001 * 10 ** 6 + 1)) +
+//     // 0.001 * 10 ** 6;
 //     params = {
 //       dstSellerAddress:
 //         "0x000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091",
@@ -47,7 +47,7 @@
 //       srcTokenAddress:
 //         "0x000000000000000000000000BBd6fb513C5e0b6E0Ce0d88135c765776C878aF0",
 //       dstTokenAddress:
-//         "0x0000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead",
+//         "0x0000000000000000000000000000000000000000000000000000000000000000",
 //       srcAmountLD: "5000000000000000000",
 //       exchangeRateSD: exchangeRateSD.toString(),
 //     };

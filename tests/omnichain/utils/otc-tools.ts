@@ -60,4 +60,21 @@ export class OtcTools {
       Array.from(offerId),
     ];
   }
+
+  static async getOfferFromId(
+    program: Program<OtcMarket>,
+    offerId: string,
+  ): Promise<{
+    address: PublicKey;
+    account: anchor.IdlAccounts<OtcMarket>["offer"];
+  }> {
+    const address = PublicKey.findProgramAddressSync(
+      [Buffer.from(offerId, "hex")],
+      program.programId,
+    )[0];
+
+    const account = await program.account.offer.fetch(address);
+
+    return { address, account };
+  }
 }

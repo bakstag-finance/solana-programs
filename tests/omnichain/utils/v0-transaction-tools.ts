@@ -60,7 +60,6 @@ export class V0TransactionTools {
   static async createLookupTable(
     connection: Connection,
     payer: Keypair,
-    addresses: PublicKey[],
     commitment?: Commitment,
   ): Promise<PublicKey> {
     const slot = await connection.getSlot();
@@ -69,10 +68,30 @@ export class V0TransactionTools {
       {
         authority: payer.publicKey,
         payer: payer.publicKey,
-        recentSlot: slot,
+        recentSlot: slot - 1,
       },
     );
 
+    const tx = await this.createV0Transaction(
+      connection,
+      payer.publicKey,
+      [createIx],
+      undefined,
+      commitment,
+    );
+
+    await this.sendAndConfirmV0Transaction(connection, tx, [payer], commitment);
+
+    return lookupTable;
+  }
+
+  static async extendLookUpTable(
+    connection: Connection,
+    payer: Keypair,
+    lookupTable: PublicKey,
+    addresses?: PublicKey[], // < 20 recommended
+    commitment?: Commitment,
+  ): Promise<void> {
     const extendIx = AddressLookupTableProgram.extendLookupTable({
       payer: payer.publicKey,
       authority: payer.publicKey,
@@ -83,14 +102,12 @@ export class V0TransactionTools {
     const tx = await this.createV0Transaction(
       connection,
       payer.publicKey,
-      [createIx, extendIx],
+      [extendIx],
       undefined,
       commitment,
     );
 
     await this.sendAndConfirmV0Transaction(connection, tx, [payer], commitment);
-
-    return lookupTable;
   }
 
   // static async createLookUpTable(
@@ -261,28 +278,28 @@ export class V0TransactionTools {
   //   );
   // }
 
-  // static waitForNewBlock(connection: Connection, targetHeight: number) {
-  //   console.log(`Waiting for ${targetHeight} new blocks`);
-  //   return new Promise(async (resolve: any) => {
-  //     // Get the last valid block height of the blockchain
-  //     const { lastValidBlockHeight } = await connection.getLatestBlockhash();
+  static waitForNewBlock(connection: Connection, targetHeight: number) {
+    console.log(`Waiting for ${targetHeight} new blocks`);
+    return new Promise(async (resolve: any) => {
+      // Get the last valid block height of the blockchain
+      const { lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-  //     // Set an interval to check for new blocks every 1000ms
-  //     const intervalId = setInterval(async () => {
-  //       // Get the new valid block height
-  //       const { lastValidBlockHeight: newValidBlockHeight } =
-  //         await connection.getLatestBlockhash();
-  //       // console.log(newValidBlockHeight)
+      // Set an interval to check for new blocks every 1000ms
+      const intervalId = setInterval(async () => {
+        // Get the new valid block height
+        const { lastValidBlockHeight: newValidBlockHeight } =
+          await connection.getLatestBlockhash();
+        // console.log(newValidBlockHeight)
 
-  //       // Check if the new valid block height is greater than the target block height
-  //       if (newValidBlockHeight > lastValidBlockHeight + targetHeight) {
-  //         // If the target block height is reached, clear the interval and resolve the promise
-  //         clearInterval(intervalId);
-  //         resolve();
-  //       }
-  //     }, 1000);
-  //   });
-  // }
+        // Check if the new valid block height is greater than the target block height
+        if (newValidBlockHeight > lastValidBlockHeight + targetHeight) {
+          // If the target block height is reached, clear the interval and resolve the promise
+          clearInterval(intervalId);
+          resolve();
+        }
+      }, 1000);
+    });
+  }
 
   // static async sendV0Transaction(
   //   connection: Connection,
