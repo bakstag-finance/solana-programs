@@ -29,7 +29,6 @@ import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { SRC_EID } from "../helpers/constants";
 import { transfer } from "@solana/spl-token";
 import { generateAccounts, transferSol } from "../helpers/helper";
-import { getRemainings } from "./utils/transfer";
 import { AccountTools } from "./utils/account-tools";
 
 describe("Create Offer", () => {
@@ -61,7 +60,11 @@ describe("Create Offer", () => {
     };
   });
   after(async () => {
-    await getRemainings(connection, [accounts.seller], wallet.publicKey);
+    await AccountTools.getRemainings(
+      connection,
+      [accounts.seller],
+      wallet.publicKey,
+    );
   });
 
   it("should quote create offer", async () => {
