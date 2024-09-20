@@ -205,12 +205,14 @@ export class Otc {
       })
       .remainingAccounts(remainingAccounts)
       .transaction();
+
     const tx = new Transaction().add(
       ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
       create,
     );
 
-    let { blockhash } = await this.connection.getLatestBlockhash();
+    let { blockhash } = await this.connection.getLatestBlockhash(COMMITMENT);
+
     const message = new TransactionMessage({
       payerKey: seller.publicKey, // Public key of the account that will pay for the transaction
       recentBlockhash: blockhash, // Latest blockhash
@@ -367,41 +369,41 @@ export class Otc {
         ]
       : [null, null, []];
 
-    const addresses = [
-      //  buyer.publicKey,
-      //  otcConfig,
-      //  offerAddress,
+    // const addresses = [
+    //   //  buyer.publicKey,
+    //   //  otcConfig,
+    //   //  offerAddress,
 
-      //  this.payer.publicKey,
+    //   //  this.payer.publicKey,
 
-      //  treasury,
-      peer,
-      enforcedOptions,
-    ];
+    //   //  treasury,
+    //   peer,
+    //   enforcedOptions,
+    // ];
 
-    const lookupTableAddress = await V0TransactionTools.createLookUpTable(
-      this.connection,
-      buyer,
-      addresses,
-      remainingAccounts,
-    );
-
-    // await OtcTools.extendLookUpTable(
+    // const lookupTableAddress = await V0TransactionTools.createLookUpTable(
     //   this.connection,
-    //   lookupTableAddress,
-    //   remainingAccounts.map((account) => account.pubkey),
     //   buyer,
+    //   addresses,
+    //   remainingAccounts,
     // );
 
-    await V0TransactionTools.waitForNewBlock(this.connection, 1);
+    // // await OtcTools.extendLookUpTable(
+    // //   this.connection,
+    // //   lookupTableAddress,
+    // //   remainingAccounts.map((account) => account.pubkey),
+    // //   buyer,
+    // // );
 
-    const lookupTableAccount = (
-      await this.connection.getAddressLookupTable(lookupTableAddress)
-    ).value;
+    // await V0TransactionTools.waitForNewBlock(this.connection, 1);
 
-    if (!lookupTableAccount) {
-      throw new Error("Lookup table not found");
-    }
+    // const lookupTableAccount = (
+    //   await this.connection.getAddressLookupTable(lookupTableAddress)
+    // ).value;
+
+    // if (!lookupTableAccount) {
+    //   throw new Error("Lookup table not found");
+    // }
 
     const acceptIx = await this.program.methods
       .acceptOffer(params, fee)
@@ -411,9 +413,9 @@ export class Otc {
         offer: offerAddress,
         dstBuyerAta: null,
         dstSellerAta: null,
-        dstSeller: this.payer.publicKey,
+        dstSeller: this.payer.publicKey, // TODO: fix
         dstTreasuryAta: null,
-        treasury: treasury,
+        treasury,
         dstTokenMint: null,
         srcBuyerAta: null,
         srcEscrowAta: null,
@@ -425,11 +427,33 @@ export class Otc {
       .remainingAccounts(remainingAccounts)
       .instruction();
 
-    await V0TransactionTools.sendV0Transaction(
+    const lookUpTableAddress = await V0TransactionTools.createLookupTable(
+      this.connection,
+      buyer,
+      acceptIx.keys.map((key) => key.pubkey),
+    );
+    console.log("look up table address: ", lookUpTableAddress);
+
+    const lookupTableAccount = (
+      await this.connection.getAddressLookupTable(lookUpTableAddress)
+    ).value;
+    console.log("look up table account: ", lookupTableAccount);
+
+    const tx = await V0TransactionTools.createV0Transaction(
       this.connection,
       buyer,
       [acceptIx],
       [lookupTableAccount],
+      COMMITMENT,
     );
+    console.log("v0 tx: ", tx);
+
+    const signature = await V0TransactionTools.sendAndConfirmV0Transaction(
+      this.connection,
+      tx,
+      [buyer],
+      COMMITMENT,
+    );
+    console.log("v0 signature: ", signature);
   }
 }
