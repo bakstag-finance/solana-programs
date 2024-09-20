@@ -114,7 +114,6 @@ pub struct AcceptOffer<'info> {
     /// NOTICE: required for src spl token - token_mint
     pub src_token_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
 
-
     #[account(
         seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &offer.src_eid.to_be_bytes()],
         bump = peer.bump
@@ -217,14 +216,18 @@ impl AcceptOffer<'_> {
                 ctx.accounts.src_buyer_ata.as_deref(),
                 Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
             )?;
-        }else{
+        } else {
             let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
             let enforced_options = ctx.accounts.enforced_options
                 .as_ref()
                 .expect(OtcConfig::ERROR_MSG);
 
-            let payload = build_accept_offer_payload(&params.offer_id, 
-                params.src_amount_sd, &params.src_buyer_address, &ctx.accounts.buyer.key().to_bytes());
+            let payload = build_accept_offer_payload(
+                &params.offer_id,
+                params.src_amount_sd,
+                &params.src_buyer_address,
+                &ctx.accounts.buyer.key().to_bytes()
+            );
 
             receipt = oapp::endpoint_cpi::send(
                 ctx.accounts.otc_config.endpoint_program,
