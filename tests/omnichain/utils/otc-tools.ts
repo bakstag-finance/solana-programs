@@ -30,14 +30,9 @@ export class OtcTools {
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
-    const offer = await otc.createOffer(
-      params,
-      await otc.quoteCreateOffer(params, srcSeller)[1], // fee
-      srcSeller,
-      srcTokenMint,
-    );
+    const fee = (await otc.quoteCreateOffer(params, srcSeller))[1];
 
-    return offer;
+    return await otc.createOffer(params, fee, srcSeller, srcTokenMint);
   }
 
   static async getOfferFromParams(

@@ -41,7 +41,7 @@ export class V0TransactionTools {
 
   static async createV0Transaction(
     connection: Connection,
-    payer: Keypair,
+    payerKey: PublicKey,
     instructions: TransactionInstruction[],
     lookupTableAccounts?: AddressLookupTableAccount[],
     commitment?: Commitment,
@@ -49,7 +49,7 @@ export class V0TransactionTools {
     const { blockhash } = await connection.getLatestBlockhash(commitment);
 
     const message = new TransactionMessage({
-      payerKey: payer.publicKey,
+      payerKey,
       recentBlockhash: blockhash,
       instructions,
     }).compileToV0Message(lookupTableAccounts);
@@ -82,7 +82,7 @@ export class V0TransactionTools {
 
     const tx = await this.createV0Transaction(
       connection,
-      payer,
+      payer.publicKey,
       [createIx, extendIx],
       undefined,
       commitment,

@@ -189,7 +189,7 @@ export class Otc {
         ]
       : [null, null, []];
 
-    const create = await this.program.methods
+    const createIx = await this.program.methods
       .createOffer(params, messagingFee)
       .accounts({
         seller: seller.publicKey,
@@ -203,40 +203,28 @@ export class Otc {
         enforcedOptions, // required for cross chain offer
       })
       .remainingAccounts(remainingAccounts)
-      .transaction();
+      .instruction();
 
-    const tx = new Transaction().add(
-      ComputeBudgetProgram.setComputeUnitLimit({ units: 1000000 }),
-      create,
-    );
+    const setComputeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    });
 
-    let { blockhash } = await this.connection.getLatestBlockhash(COMMITMENT);
-
-    const message = new TransactionMessage({
-      payerKey: seller.publicKey, // Public key of the account that will pay for the transaction
-      recentBlockhash: blockhash, // Latest blockhash
-      instructions: tx.instructions, // Instructions included in transaction
-    }).compileToV0Message();
-
-    const transaction = new VersionedTransaction(message);
-
-    transaction.sign([seller]);
-
-    const transactionSignature =
-      await this.connection.sendTransaction(transaction);
-
-    const latestBlockhash = await this.connection.getLatestBlockhash();
-
-    const confirmation = await this.connection.confirmTransaction(
-      {
-        signature: transactionSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
+    const tx = await V0TransactionTools.createV0Transaction(
+      this.connection,
+      seller.publicKey,
+      [setComputeLimitIx, createIx],
+      undefined,
       COMMITMENT,
     );
 
-    console.log("Create offer tx signature:", transactionSignature);
+    const signature = await V0TransactionTools.sendAndConfirmV0Transaction(
+      this.connection,
+      tx,
+      [seller],
+      COMMITMENT,
+    );
+
+    console.log("Create offer tx signature: ", signature);
 
     return offer;
   }
@@ -444,7 +432,7 @@ export class Otc {
 
     const tx = await V0TransactionTools.createV0Transaction(
       this.connection,
-      buyer,
+      buyer.publicKey,
       [acceptIx],
       [lookupTableAccount],
       COMMITMENT,

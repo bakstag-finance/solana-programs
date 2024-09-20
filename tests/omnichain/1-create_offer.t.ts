@@ -2,52 +2,32 @@ import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { Program, Wallet } from "@coral-xyz/anchor";
 import { OtcMarket } from "../../target/types/otc_market";
-import {
-  EndpointProgram,
-  UlnProgram,
-  simulateTransaction,
-} from "@layerzerolabs/lz-solana-sdk-v2";
-import {
-  PacketPath,
-  bytes32ToEthAddress,
-} from "@layerzerolabs/lz-v2-utilities";
-import { hexlify } from "ethers/lib/utils";
 import { solanaToArbSepConfig as peer } from "./config/peer";
 import { CreateOfferParams } from "../helpers/create_offer";
-import { quoteCreateOfferBeet } from "./utils/beet-decoder";
 import { assert } from "chai";
 import { OtcTools } from "./utils/otc-tools";
 import { Otc } from "./utils/otc";
 import {
   AmountsLD,
-  ENDPOINT_PROGRAM_ID,
   ExchangeRates,
   SOLANA_EID,
   Token,
 } from "./config/constants";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { SRC_EID } from "../helpers/constants";
-import { transfer } from "@solana/spl-token";
-import { generateAccounts, transferSol } from "../helpers/helper";
 import { AccountTools } from "./utils/account-tools";
 
 describe("Create Offer", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.OtcMarket as Program<OtcMarket>;
-  const programId = program.programId;
   const connection = provider.connection;
   const wallet = provider.wallet as Wallet;
-  const commitment = "confirmed";
 
   let accounts: {
     seller: Keypair;
     otcConfig: PublicKey;
   };
 
-  const endpoint = new EndpointProgram.Endpoint(
-    new PublicKey(ENDPOINT_PROGRAM_ID),
-  );
   const otc = new Otc(program, connection, wallet.payer);
 
   before(async () => {
@@ -108,19 +88,18 @@ describe("Create Offer", () => {
       Array.from(accounts.seller.publicKey.toBytes()),
     );
 
-    const fethched_offer = await program.account.offer.fetch(offer[0]);
+    const fetchedOffer = await program.account.offer.fetch(offer[0]);
     assert(
-      fethched_offer.srcSellerAddress.toString() ==
+      fetchedOffer.srcSellerAddress.toString() ==
         Array.from(accounts.seller.publicKey.toBytes()).toString(),
       "src seller address",
     );
     assert(
-      fethched_offer.dstSellerAddress.toString() ==
+      fetchedOffer.dstSellerAddress.toString() ==
         Array.from(accounts.seller.publicKey.toBytes()).toString(),
-      "Dst buyer address",
+      "dst buyer address",
     );
-    //console.log(fethched_offer.dstEid);
-    assert(fethched_offer.dstEid == 40231, "dst eid");
-    assert(fethched_offer.srcEid == SOLANA_EID, "srcE eid");
+    assert(fetchedOffer.dstEid == 40231, "dst eid");
+    assert(fetchedOffer.srcEid == SOLANA_EID, "src eid");
   });
 });

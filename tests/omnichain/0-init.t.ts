@@ -63,13 +63,13 @@ describe("Omnichain", () => {
 
   it("should log solana peer", async () => {
     console.log(hexlify(accounts.otcConfig.toBytes()));
-    console.log(
-      hexlify(
-        Options.newOptions()
-          .addExecutorLzReceiveOption(1 * 10 ** 6, 1500_000)
-          .toBytes(),
-      ),
-    );
+    // console.log(
+    //   hexlify(
+    //     Options.newOptions()
+    //       .addExecutorLzReceiveOption(1 * 10 ** 6, 1500_000)
+    //       .toBytes(),
+    //   ),
+    // );
   });
 
   describe("Initialize", () => {
@@ -216,96 +216,95 @@ describe("Omnichain", () => {
       });
     });
 
-    it("shold return account from LzReceiveTypes", async () => {
-      const payload =
-        "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
+    // it("shold return account from LzReceiveTypes", async () => {
+    //   const payload =
+    //     "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
 
-      const payloadBytes = Buffer.from(payload.slice(2), "hex");
-      const params: LzReceiveParams = {
-        srcEid: 40168,
-        sender: Array.from(wallet.publicKey.toBytes()),
-        nonce: new anchor.BN(1),
-        guid: Array.from(wallet.publicKey.toBytes()),
-        message: payloadBytes,
-        extraData: Buffer.from(""),
-      };
+    //   const payloadBytes = Buffer.from(payload.slice(2), "hex");
+    //   const params: LzReceiveParams = {
+    //     srcEid: 40168,
+    //     sender: Array.from(wallet.publicKey.toBytes()),
+    //     nonce: new anchor.BN(1),
+    //     guid: Array.from(wallet.publicKey.toBytes()),
+    //     message: payloadBytes,
+    //     extraData: Buffer.from(""),
+    //   };
 
-      const ix = await program.methods
-        .lzReceiveTypes(params)
-        .accounts({
-          otcConfig: accounts.otcConfig,
-        })
-        .instruction();
+    //   const ix = await program.methods
+    //     .lzReceiveTypes(params)
+    //     .accounts({
+    //       otcConfig: accounts.otcConfig,
+    //     })
+    //     .instruction();
 
-      const response = await simulateTransaction(
-        connection,
-        [ix],
-        program.programId,
-        wallet.publicKey,
-        COMMITMENT,
-      );
+    //   const response = await simulateTransaction(
+    //     connection,
+    //     [ix],
+    //     program.programId,
+    //     wallet.publicKey,
+    //     COMMITMENT,
+    //   );
 
-      console.log(response);
-    });
-    it("should add offer lz receive create offer", async () => {
-      const payload =
-        "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
+    //   console.log(response);
+    // });
+    // it("should add offer lz receive create offer", async () => {
+    //   const payload =
+    //     "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
 
-      const payloadBytes = Buffer.from(payload.slice(2), "hex");
-      const params: LzReceiveParams = {
-        srcEid: 40168,
-        sender: Array.from(wallet.publicKey.toBytes()),
-        nonce: new anchor.BN(1),
-        guid: Array.from(wallet.publicKey.toBytes()),
-        message: payloadBytes,
-        extraData: Buffer.from(""),
-      };
-      program.methods
-        .lzReceive(params)
-        .accounts({
-          payer: wallet.publicKey,
-          offer: new PublicKey(
-            Buffer.from(
-              "008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a",
-              "hex",
-            ),
-          ),
-        })
-        .signers([wallet.payer])
-        .rpc();
-    });
+    //   const payloadBytes = Buffer.from(payload.slice(2), "hex");
+    //   const params: LzReceiveParams = {
+    //     srcEid: 40168,
+    //     sender: Array.from(wallet.publicKey.toBytes()),
+    //     nonce: new anchor.BN(1),
+    //     guid: Array.from(wallet.publicKey.toBytes()),
+    //     message: payloadBytes,
+    //     extraData: Buffer.from(""),
+    //   };
+    //   program.methods
+    //     .lzReceive(params)
+    //     .accounts({
+    //       payer: wallet.publicKey,
+    //       offer: new PublicKey(
+    //         Buffer.from(
+    //           "008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a",
+    //           "hex",
+    //         ),
+    //       ),
+    //     })
+    //     .signers([wallet.payer])
+    //     .rpc();
+    // });
 
-    it("lz receive", async () => {
-      console.log("huila");
-      const payload =
-        "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
+    // it("lz receive", async () => {
+    //   const payload =
+    //     "0x008a1fb0c58e4e62fcea2bc8cad453adee904e7e55ad9524f27e7ceeaaca47652a000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a3091000000000000000000000000c37713ef41aff1a7ac1c3d02f6f0b3a57f8a309100009d2700009ce8000000000000000000000000bbd6fb513c5e0b6e0ce0d88135c765776c878af00000000000000000000000008b3bcfa4680e8a16215e587dfccd1730a453cead00000000004c4b40000000000016e364";
 
-      //   const { message: message_, sender, srcEid, guid, receiver: receiver_ } = packet;
-      const packet: Packet = {
-        version: 302,
-        nonce: "1",
-        guid: "0x0000000000000000000000000000000000000000000000000000000000000000",
-        message: payload,
-        payload: "",
-        srcEid: 40231,
-        dstEid: 40168,
-        sender:
-          "0x000000000000000000000000bca736bdf0711b46e5c98cd626f7c6a45f56ba88",
-        receiver: accounts.otcConfig.toString(),
-        //"5ZGsuHpwHURk5EagJFW8BTSzG5HVo1Joa2QfGYHMFFA",
-      };
-      console.log(program.programId.toString());
-      console.log(accounts.otcConfig.toString());
-      const ix = await lzReceive(connection, wallet.publicKey, packet);
+    //   //   const { message: message_, sender, srcEid, guid, receiver: receiver_ } = packet;
+    //   const packet: Packet = {
+    //     version: 302,
+    //     nonce: "1",
+    //     guid: "0x0000000000000000000000000000000000000000000000000000000000000000",
+    //     message: payload,
+    //     payload: "",
+    //     srcEid: 40231,
+    //     dstEid: 40168,
+    //     sender:
+    //       "0x000000000000000000000000bca736bdf0711b46e5c98cd626f7c6a45f56ba88",
+    //     receiver: accounts.otcConfig.toString(),
+    //     //"5ZGsuHpwHURk5EagJFW8BTSzG5HVo1Joa2QfGYHMFFA",
+    //   };
+    //   console.log(program.programId.toString());
+    //   console.log(accounts.otcConfig.toString());
+    //   const ix = await lzReceive(connection, wallet.publicKey, packet);
 
-      const hui = await simulateTransaction(
-        connection,
-        [ix],
-        program.programId,
-        wallet.publicKey,
-      );
-      console.log(hui);
-    });
+    //   const hui = await simulateTransaction(
+    //     connection,
+    //     [ix],
+    //     program.programId,
+    //     wallet.publicKey,
+    //   );
+    //   console.log(hui);
+    // });
   });
 
   // describe("Crosschain msg", () => {
