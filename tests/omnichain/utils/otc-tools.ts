@@ -30,14 +30,9 @@ export class OtcTools {
       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
     };
 
-    const offer = await otc.createOffer(
-      params,
-      await otc.quoteCreateOffer(params, srcSeller)[1], // fee
-      srcSeller,
-      srcTokenMint,
-    );
+    const fee = (await otc.quoteCreateOffer(params, srcSeller))[1];
 
-    return offer;
+    return await otc.createOffer(params, fee, srcSeller, srcTokenMint);
   }
 
   static async getOfferFromParams(
@@ -64,5 +59,22 @@ export class OtcTools {
       PublicKey.findProgramAddressSync([offerId], program.programId)[0],
       Array.from(offerId),
     ];
+  }
+
+  static async getOfferFromId(
+    program: Program<OtcMarket>,
+    offerId: string,
+  ): Promise<{
+    address: PublicKey;
+    account: anchor.IdlAccounts<OtcMarket>["offer"];
+  }> {
+    const address = PublicKey.findProgramAddressSync(
+      [Buffer.from(offerId, "hex")],
+      program.programId,
+    )[0];
+
+    const account = await program.account.offer.fetch(address);
+
+    return { address, account };
   }
 }

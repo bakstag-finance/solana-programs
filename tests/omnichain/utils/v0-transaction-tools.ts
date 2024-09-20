@@ -8,174 +8,275 @@ import {
   VersionedTransaction,
   AddressLookupTableAccount,
   TransactionInstruction,
+  Signer,
+  TransactionSignature,
+  Commitment,
 } from "@solana/web3.js";
 
 export class V0TransactionTools {
-  static async createLookUpTable(
+  static async sendAndConfirmV0Transaction(
     connection: Connection,
-    payer: Keypair,
-    accounts: Array<PublicKey>,
-    remainingAccounts,
-  ): Promise<PublicKey> {
-    // Get the current slot
-    const slot = await connection.getSlot();
+    transaction: VersionedTransaction,
+    signers: Array<Signer>,
+    commitment?: Commitment,
+  ): Promise<TransactionSignature> {
+    transaction.sign(signers);
 
-    // Create an instruction for creating a lookup table
-    // and retrieve the address of the new lookup table
-    const [lookupTableInst, lookupTableAddress] =
-      AddressLookupTableProgram.createLookupTable({
-        authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
-        payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
-        recentSlot: slot - 1, // The recent slot to derive lookup table's address
-      });
+    const signature = await connection.sendTransaction(transaction);
 
-    const extendInstruction = AddressLookupTableProgram.extendLookupTable({
-      payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
-      authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
-      lookupTable: lookupTableAddress, // The address of the lookup table to extend
-      addresses: accounts, // The addresses to add to the lookup table
-    });
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash(COMMITMENT);
 
-    let { blockhash } = await connection.getLatestBlockhash();
+    await connection.confirmTransaction(
+      {
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      },
+      commitment,
+    );
+
+    return signature;
+  }
+
+  static async createV0Transaction(
+    connection: Connection,
+    payerKey: PublicKey,
+    instructions: TransactionInstruction[],
+    lookupTableAccounts?: AddressLookupTableAccount[],
+    commitment?: Commitment,
+  ): Promise<VersionedTransaction> {
+    const { blockhash } = await connection.getLatestBlockhash(commitment);
 
     const message = new TransactionMessage({
-      payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
-      recentBlockhash: blockhash, // Latest blockhash
-      instructions: [lookupTableInst, extendInstruction], // Instructions included in transaction
-    }).compileToV0Message();
+      payerKey,
+      recentBlockhash: blockhash,
+      instructions,
+    }).compileToV0Message(lookupTableAccounts);
 
-    const transaction = new VersionedTransaction(message);
+    return new VersionedTransaction(message);
+  }
 
-    transaction.sign([payer]);
+  static async createLookupTable(
+    connection: Connection,
+    payer: Keypair,
+    commitment?: Commitment,
+  ): Promise<PublicKey> {
+    const slot = await connection.getSlot();
 
-    const transactionSignature = await connection.sendTransaction(transaction);
-
-    const latestBlockhash = await connection.getLatestBlockhash();
-
-    const confirmation = await connection.confirmTransaction(
+    const [createIx, lookupTable] = AddressLookupTableProgram.createLookupTable(
       {
-        signature: transactionSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        authority: payer.publicKey,
+        payer: payer.publicKey,
+        recentSlot: slot - 1,
       },
-      COMMITMENT,
     );
-    console.log("look up tx", transactionSignature);
 
-    return lookupTableAddress;
+    const tx = await this.createV0Transaction(
+      connection,
+      payer.publicKey,
+      [createIx],
+      undefined,
+      commitment,
+    );
+
+    await this.sendAndConfirmV0Transaction(connection, tx, [payer], commitment);
+
+    return lookupTable;
   }
 
   static async extendLookUpTable(
     connection: Connection,
-    lookupTableAddress: PublicKey,
-    accounts: Array<PublicKey>,
     payer: Keypair,
-  ) {
-    const extendInstruction = AddressLookupTableProgram.extendLookupTable({
-      payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
-      authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
-      lookupTable: lookupTableAddress, // The address of the lookup table to extend
-      addresses: accounts, // The addresses to add to the lookup table
+    lookupTable: PublicKey,
+    addresses?: PublicKey[], // < 20 recommended
+    commitment?: Commitment,
+  ): Promise<void> {
+    const extendIx = AddressLookupTableProgram.extendLookupTable({
+      payer: payer.publicKey,
+      authority: payer.publicKey,
+      lookupTable,
+      addresses,
     });
 
-    let { blockhash } = await connection.getLatestBlockhash();
-
-    const message = new TransactionMessage({
-      payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
-      recentBlockhash: blockhash, // Latest blockhash
-      instructions: [extendInstruction], // Instructions included in transaction
-    }).compileToV0Message();
-
-    const transaction = new VersionedTransaction(message);
-
-    transaction.sign([payer]);
-
-    const transactionSignature = await connection.sendTransaction(transaction);
-
-    const latestBlockhash = await connection.getLatestBlockhash();
-
-    const confirmation = await connection.confirmTransaction(
-      {
-        signature: transactionSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
-      COMMITMENT,
+    const tx = await this.createV0Transaction(
+      connection,
+      payer.publicKey,
+      [extendIx],
+      undefined,
+      commitment,
     );
+
+    await this.sendAndConfirmV0Transaction(connection, tx, [payer], commitment);
   }
 
-  static async deactivateLookUpTable(
-    connection: Connection,
-    lookupTableAddress: PublicKey,
-    payer: Keypair,
-  ) {
-    const deactivateInstruction =
-      AddressLookupTableProgram.deactivateLookupTable({
-        lookupTable: lookupTableAddress, // The address of the lookup table to deactivate
-        authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
-      });
-    let { blockhash } = await connection.getLatestBlockhash();
+  // static async createLookUpTable(
+  //   connection: Connection,
+  //   payer: Keypair,
+  //   accounts: Array<PublicKey>,
+  //   remainingAccounts,
+  // ): Promise<PublicKey> {
+  //   // Get the current slot
+  //   const slot = await connection.getSlot();
 
-    const message = new TransactionMessage({
-      payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
-      recentBlockhash: blockhash, // Latest blockhash
-      instructions: [deactivateInstruction], // Instructions included in transaction
-    }).compileToV0Message();
+  //   // Create an instruction for creating a lookup table
+  //   // and retrieve the address of the new lookup table
+  //   const [lookupTableInst, lookupTableAddress] =
+  //     AddressLookupTableProgram.createLookupTable({
+  //       authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
+  //       payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
+  //       recentSlot: slot - 1, // The recent slot to derive lookup table's address
+  //     });
 
-    const transaction = new VersionedTransaction(message);
+  //   const extendInstruction = AddressLookupTableProgram.extendLookupTable({
+  //     payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
+  //     authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
+  //     lookupTable: lookupTableAddress, // The address of the lookup table to extend
+  //     addresses: accounts, // The addresses to add to the lookup table
+  //   });
 
-    transaction.sign([payer]);
+  //   let { blockhash } = await connection.getLatestBlockhash();
 
-    const transactionSignature = await connection.sendTransaction(transaction);
+  //   const message = new TransactionMessage({
+  //     payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
+  //     recentBlockhash: blockhash, // Latest blockhash
+  //     instructions: [lookupTableInst, extendInstruction], // Instructions included in transaction
+  //   }).compileToV0Message();
 
-    const latestBlockhash = await connection.getLatestBlockhash();
+  //   const transaction = new VersionedTransaction(message);
 
-    const confirmation = await connection.confirmTransaction(
-      {
-        signature: transactionSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
-      COMMITMENT,
-    );
-  }
+  //   transaction.sign([payer]);
 
-  static async closeLookUpTable(
-    connection: Connection,
-    lookupTableAddress: PublicKey,
-    payer: Keypair,
-  ) {
-    const closeInstruction = AddressLookupTableProgram.closeLookupTable({
-      lookupTable: lookupTableAddress, // The address of the lookup table to close
-      authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
-      recipient: payer.publicKey, // The recipient of closed account lamports
-    });
+  //   const transactionSignature = await connection.sendTransaction(transaction);
 
-    let { blockhash } = await connection.getLatestBlockhash();
+  //   // send and confirm
 
-    const message = new TransactionMessage({
-      payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
-      recentBlockhash: blockhash, // Latest blockhash
-      instructions: [closeInstruction], // Instructions included in transaction
-    }).compileToV0Message();
+  //   const latestBlockhash = await connection.getLatestBlockhash();
 
-    const transaction = new VersionedTransaction(message);
+  //   const confirmation = await connection.confirmTransaction(
+  //     {
+  //       signature: transactionSignature,
+  //       blockhash: latestBlockhash.blockhash,
+  //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  //     },
+  //     COMMITMENT,
+  //   );
+  //   console.log("look up tx", transactionSignature);
 
-    transaction.sign([payer]);
+  //   return lookupTableAddress;
+  // }
 
-    const transactionSignature = await connection.sendTransaction(transaction);
+  // static async extendLookUpTable(
+  //   connection: Connection,
+  //   lookupTableAddress: PublicKey,
+  //   accounts: Array<PublicKey>,
+  //   payer: Keypair,
+  // ) {
+  //   const extendInstruction = AddressLookupTableProgram.extendLookupTable({
+  //     payer: payer.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
+  //     authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
+  //     lookupTable: lookupTableAddress, // The address of the lookup table to extend
+  //     addresses: accounts, // The addresses to add to the lookup table
+  //   });
 
-    const latestBlockhash = await connection.getLatestBlockhash();
+  //   let { blockhash } = await connection.getLatestBlockhash();
 
-    const confirmation = await connection.confirmTransaction(
-      {
-        signature: transactionSignature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      },
-      COMMITMENT,
-    );
-  }
+  //   const message = new TransactionMessage({
+  //     payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
+  //     recentBlockhash: blockhash, // Latest blockhash
+  //     instructions: [extendInstruction], // Instructions included in transaction
+  //   }).compileToV0Message();
+
+  //   const transaction = new VersionedTransaction(message);
+
+  //   transaction.sign([payer]);
+
+  //   const transactionSignature = await connection.sendTransaction(transaction);
+
+  //   const latestBlockhash = await connection.getLatestBlockhash();
+
+  //   const confirmation = await connection.confirmTransaction(
+  //     {
+  //       signature: transactionSignature,
+  //       blockhash: latestBlockhash.blockhash,
+  //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  //     },
+  //     COMMITMENT,
+  //   );
+  // }
+
+  // static async deactivateLookUpTable(
+  //   connection: Connection,
+  //   lookupTableAddress: PublicKey,
+  //   payer: Keypair,
+  // ) {
+  //   const deactivateInstruction =
+  //     AddressLookupTableProgram.deactivateLookupTable({
+  //       lookupTable: lookupTableAddress, // The address of the lookup table to deactivate
+  //       authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
+  //     });
+  //   let { blockhash } = await connection.getLatestBlockhash();
+
+  //   const message = new TransactionMessage({
+  //     payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
+  //     recentBlockhash: blockhash, // Latest blockhash
+  //     instructions: [deactivateInstruction], // Instructions included in transaction
+  //   }).compileToV0Message();
+
+  //   const transaction = new VersionedTransaction(message);
+
+  //   transaction.sign([payer]);
+
+  //   const transactionSignature = await connection.sendTransaction(transaction);
+
+  //   const latestBlockhash = await connection.getLatestBlockhash();
+
+  //   const confirmation = await connection.confirmTransaction(
+  //     {
+  //       signature: transactionSignature,
+  //       blockhash: latestBlockhash.blockhash,
+  //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  //     },
+  //     COMMITMENT,
+  //   );
+  // }
+
+  // static async closeLookUpTable(
+  //   connection: Connection,
+  //   lookupTableAddress: PublicKey,
+  //   payer: Keypair,
+  // ) {
+  //   const closeInstruction = AddressLookupTableProgram.closeLookupTable({
+  //     lookupTable: lookupTableAddress, // The address of the lookup table to close
+  //     authority: payer.publicKey, // The authority (i.e., the account with permission to modify the lookup table)
+  //     recipient: payer.publicKey, // The recipient of closed account lamports
+  //   });
+
+  //   let { blockhash } = await connection.getLatestBlockhash();
+
+  //   const message = new TransactionMessage({
+  //     payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
+  //     recentBlockhash: blockhash, // Latest blockhash
+  //     instructions: [closeInstruction], // Instructions included in transaction
+  //   }).compileToV0Message();
+
+  //   const transaction = new VersionedTransaction(message);
+
+  //   transaction.sign([payer]);
+
+  //   const transactionSignature = await connection.sendTransaction(transaction);
+
+  //   const latestBlockhash = await connection.getLatestBlockhash();
+
+  //   const confirmation = await connection.confirmTransaction(
+  //     {
+  //       signature: transactionSignature,
+  //       blockhash: latestBlockhash.blockhash,
+  //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  //     },
+  //     COMMITMENT,
+  //   );
+  // }
 
   static waitForNewBlock(connection: Connection, targetHeight: number) {
     console.log(`Waiting for ${targetHeight} new blocks`);
@@ -200,45 +301,45 @@ export class V0TransactionTools {
     });
   }
 
-  static async sendV0Transaction(
-    connection: Connection,
-    user: Keypair,
-    instructions: TransactionInstruction[],
-    lookupTableAccounts?: AddressLookupTableAccount[],
-  ) {
-    // Get the latest blockhash and last valid block height
-    const { lastValidBlockHeight, blockhash } =
-      await connection.getLatestBlockhash();
+  // static async sendV0Transaction(
+  //   connection: Connection,
+  //   user: Keypair,
+  //   instructions: TransactionInstruction[],
+  //   lookupTableAccounts?: AddressLookupTableAccount[],
+  // ) {
+  //   // Get the latest blockhash and last valid block height
+  //   const { lastValidBlockHeight, blockhash } =
+  //     await connection.getLatestBlockhash();
 
-    // Create a new transaction message with the provided instructions
-    const messageV0 = new TransactionMessage({
-      payerKey: user.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
-      recentBlockhash: blockhash, // The blockhash of the most recent block
-      instructions, // The instructions to include in the transaction
-    }).compileToV0Message(
-      lookupTableAccounts ? lookupTableAccounts : undefined,
-    );
+  //   // Create a new transaction message with the provided instructions
+  //   const messageV0 = new TransactionMessage({
+  //     payerKey: user.publicKey, // The payer (i.e., the account that will pay for the transaction fees)
+  //     recentBlockhash: blockhash, // The blockhash of the most recent block
+  //     instructions, // The instructions to include in the transaction
+  //   }).compileToV0Message(
+  //     lookupTableAccounts ? lookupTableAccounts : undefined,
+  //   );
 
-    // Create a new transaction object with the message
-    const transaction = new VersionedTransaction(messageV0);
+  //   // Create a new transaction object with the message
+  //   const transaction = new VersionedTransaction(messageV0);
 
-    // Sign the transaction with the user's keypair
-    transaction.sign([user]);
+  //   // Sign the transaction with the user's keypair
+  //   transaction.sign([user]);
 
-    // Send the transaction to the cluster
-    const txid = await connection.sendTransaction(transaction);
+  //   // Send the transaction to the cluster
+  //   const txid = await connection.sendTransaction(transaction);
 
-    // Confirm the transaction
-    await connection.confirmTransaction(
-      {
-        blockhash: blockhash,
-        lastValidBlockHeight: lastValidBlockHeight,
-        signature: txid,
-      },
-      COMMITMENT,
-    );
+  //   // Confirm the transaction
+  //   await connection.confirmTransaction(
+  //     {
+  //       blockhash: blockhash,
+  //       lastValidBlockHeight: lastValidBlockHeight,
+  //       signature: txid,
+  //     },
+  //     COMMITMENT,
+  //   );
 
-    // Log the transaction URL on the Solana Explorer
-    console.log(`https://explorer.solana.com/tx/${txid}?cluster=devnet`);
-  }
+  //   // Log the transaction URL on the Solana Explorer
+  //   console.log(`https://explorer.solana.com/tx/${txid}?cluster=devnet`);
+  // }
 }
