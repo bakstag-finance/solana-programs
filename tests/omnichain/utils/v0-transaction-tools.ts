@@ -279,7 +279,7 @@ export class V0TransactionTools {
   // }
 
   static waitForNewBlock(connection: Connection, targetHeight: number) {
-    console.log(`Waiting for ${targetHeight} new blocks`);
+    // console.log(`Waiting for ${targetHeight} new blocks`);
     return new Promise(async (resolve: any) => {
       // Get the last valid block height of the blockchain
       const { lastValidBlockHeight } = await connection.getLatestBlockhash();

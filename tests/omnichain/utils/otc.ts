@@ -5,9 +5,6 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  VersionedTransaction,
-  TransactionMessage,
-  Transaction,
   ComputeBudgetProgram,
 } from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
@@ -22,6 +19,7 @@ import {
 import {
   COMMITMENT,
   ENDPOINT_PROGRAM_ID,
+  GAS,
   PEER,
   TREASURY_SECRET_KEY,
 } from "../config/constants";
@@ -34,6 +32,7 @@ import {
 import { assert } from "chai";
 import { isNativeToken } from "./is-native-token";
 import { V0TransactionTools } from "./v0-transaction-tools";
+import { transferSol } from "../../helpers/helper";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -224,8 +223,6 @@ export class Otc {
       COMMITMENT,
     );
 
-    console.log("Create offer tx signature: ", signature);
-
     return offer;
   }
 
@@ -307,7 +304,7 @@ export class Otc {
     params: anchor.IdlTypes<OtcMarket>["AcceptOfferParams"],
     buyer: Keypair, // dst buyer with regards to offer
     fee: MessagingFee,
-  ) {
+  ): Promise<string> {
     const buyerBalance = await this.connection.getBalance(buyer.publicKey);
     assert(buyerBalance > 0, "Buyer balance should be non zero");
 
@@ -356,41 +353,10 @@ export class Otc {
         ]
       : [null, null, []];
 
-    // const addresses = [
-    //   //  buyer.publicKey,
-    //   //  otcConfig,
-    //   //  offerAddress,
+    const dstSeller = new PublicKey(offerAccount.dstSellerAddress);
 
-    //   //  this.payer.publicKey,
-
-    //   //  treasury,
-    //   peer,
-    //   enforcedOptions,
-    // ];
-
-    // const lookupTableAddress = await V0TransactionTools.createLookUpTable(
-    //   this.connection,
-    //   buyer,
-    //   addresses,
-    //   remainingAccounts,
-    // );
-
-    // // await OtcTools.extendLookUpTable(
-    // //   this.connection,
-    // //   lookupTableAddress,
-    // //   remainingAccounts.map((account) => account.pubkey),
-    // //   buyer,
-    // // );
-
-    // await V0TransactionTools.waitForNewBlock(this.connection, 1);
-
-    // const lookupTableAccount = (
-    //   await this.connection.getAddressLookupTable(lookupTableAddress)
-    // ).value;
-
-    // if (!lookupTableAccount) {
-    //   throw new Error("Lookup table not found");
-    // }
+    await transferSol(this.connection, this.payer, dstSeller, GAS);
+    await transferSol(this.connection, this.payer, treasury, GAS);
 
     const acceptIx = await this.program.methods
       .acceptOffer(params, fee)
@@ -406,7 +372,7 @@ export class Otc {
         srcTokenMint: null,
         // dst token
         dstBuyerAta: null,
-        dstSeller: new PublicKey(offerAccount.dstSellerAddress),
+        dstSeller,
         dstSellerAta: null,
         dstTreasuryAta: null,
         treasury,
@@ -420,15 +386,15 @@ export class Otc {
 
     const setComputeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 1000000,
-    });
+    }); // involves no accounts
 
+    // const addressesSet = new Set(acceptIx.keys.map((key) => key.pubkey)); // may be more efficient
     const addresses = acceptIx.keys.map((key) => key.pubkey);
 
     const lookUpTableAddress = await V0TransactionTools.createLookupTable(
       this.connection,
       buyer,
     );
-    console.log("look up table address: ", lookUpTableAddress);
 
     // First batch: 16 addresses (from index 0 to 15)
     await V0TransactionTools.extendLookUpTable(
@@ -462,7 +428,6 @@ export class Otc {
     const lookupTableAccount = (
       await this.connection.getAddressLookupTable(lookUpTableAddress)
     ).value;
-    console.log("look up table account: ", lookupTableAccount);
 
     const tx = await V0TransactionTools.createV0Transaction(
       this.connection,
@@ -471,7 +436,6 @@ export class Otc {
       [lookupTableAccount],
       COMMITMENT,
     );
-    console.log("v0 tx: ", tx);
 
     const signature = await V0TransactionTools.sendAndConfirmV0Transaction(
       this.connection,
@@ -479,6 +443,7 @@ export class Otc {
       [buyer],
       COMMITMENT,
     );
-    console.log("v0 signature: ", signature);
+
+    return signature;
   }
 }

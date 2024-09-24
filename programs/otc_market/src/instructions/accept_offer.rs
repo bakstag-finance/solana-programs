@@ -51,7 +51,7 @@ pub struct AcceptOffer<'info> {
 
     #[account(
         mut, 
-        constraint = dst_seller.key() == Pubkey::new_from_array(offer.dst_seller_address) @ OtcError::InvalidDstSeller
+        // constraint = dst_seller.key() == Pubkey::new_from_array(offer.dst_seller_address) @ OtcError::InvalidDstSeller
     )]
     /// CHECK: asserted against the one stored in the offer
     /// NOTICE: required for dst sol token - to | required for dst spl token - (init_if_needed)
@@ -69,14 +69,14 @@ pub struct AcceptOffer<'info> {
 
     #[account(
         mut, 
-        constraint = treasury.key() == otc_config.treasury @ OtcError::InvalidTreasury
+        // constraint = treasury.key() == otc_config.treasury @ OtcError::InvalidTreasury
     )]
     /// NOTICE: required for dst sol token - fee: to
     pub treasury: Option<AccountInfo<'info>>,
 
     #[account(
         mint::token_program = token_program,
-        constraint = dst_token_mint.key() == Pubkey::new_from_array(offer.dst_token_address) @ OtcError::InvalidDstTokenMint,
+        // constraint = dst_token_mint.key() == Pubkey::new_from_array(offer.dst_token_address) @ OtcError::InvalidDstTokenMint,
         constraint = dst_token_mint.decimals >= OtcConfig::SHARED_DECIMALS @ OtcError::InvalidLocalDecimals
     )]
     /// NOTICE: required for dst spl token - token_mint
@@ -108,8 +108,8 @@ pub struct AcceptOffer<'info> {
     pub escrow: Option<Box<Account<'info, Escrow>>>,
 
     #[account(
-        mint::token_program = token_program,
-        constraint = src_token_mint.key() == Pubkey::new_from_array(offer.src_token_address) @ OtcError::InvalidSrcTokenMint
+        mint::token_program = token_program
+        // constraint = src_token_mint.key() == Pubkey::new_from_array(offer.src_token_address) @ OtcError::InvalidSrcTokenMint
     )]
     /// NOTICE: required for src spl token - token_mint
     pub src_token_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
@@ -145,6 +145,38 @@ impl AcceptOffer<'_> {
         params: &AcceptOfferParams,
         fee: &MessagingFee
     ) -> Result<(AcceptOfferReceipt, MessagingReceipt)> {
+        {
+            // assert accounts match offer params
+            if let Some(src_token_mint) = ctx.accounts.src_token_mint.as_ref() {
+                require!(
+                    src_token_mint.key() ==
+                        Pubkey::new_from_array(ctx.accounts.offer.src_token_address),
+                    OtcError::InvalidSrcTokenMint
+                );
+            }
+
+            if let Some(dst_token_mint) = ctx.accounts.dst_token_mint.as_ref() {
+                require!(
+                    dst_token_mint.key() ==
+                        Pubkey::new_from_array(ctx.accounts.offer.dst_token_address),
+                    OtcError::InvalidDstTokenMint
+                );
+            }
+
+            if let Some(treasury) = ctx.accounts.treasury.as_ref() {
+                require!(
+                    treasury.key() == ctx.accounts.otc_config.treasury,
+                    OtcError::InvalidTreasury
+                );
+            }
+
+            require!(
+                ctx.accounts.dst_seller.key() ==
+                    Pubkey::new_from_array(ctx.accounts.offer.dst_seller_address),
+                OtcError::InvalidDstSeller
+            );
+        }
+
         let dst_token_mint = ctx.accounts.dst_token_mint.as_deref();
         let accept_offer_receipt = OtcConfig::to_dst_amount(
             params.src_amount_sd,
