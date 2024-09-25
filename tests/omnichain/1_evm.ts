@@ -37,7 +37,7 @@
 //     const otcPdaDeriver = new OtcPdaDeriver(program.programId);
 //     const otcConfig = otcPdaDeriver.config();
 //     peerAddress = hexlify(otcConfig.toBytes());
-//     const exchangeRateSD = 1 * 10 ** 6;
+//     const exchangeRateSD = 2 * 10 ** 6;
 //     // Math.floor(Math.random() * (10 * 10 ** 6 - 0.001 * 10 ** 6 + 1)) +
 //     // 0.001 * 10 ** 6;
 //     params = {

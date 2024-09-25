@@ -47,39 +47,39 @@
 //     );
 //   });
 
-//   it("should quote create offer", async () => {
-//     const params: CreateOfferParams = {
-//       dstSellerAddress: Array.from(accounts.seller.publicKey.toBytes()),
-//       dstEid: peer.to.eid,
-//       dstTokenAddress: Array.from(PublicKey.default.toBytes()),
-//       srcAmountLd: new anchor.BN(AmountsLD.SOL),
-//       exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
-//     };
+//   // it("should quote create offer", async () => {
+//   //   const params: CreateOfferParams = {
+//   //     dstSellerAddress: Array.from(accounts.seller.publicKey.toBytes()),
+//   //     dstEid: peer.to.eid,
+//   //     dstTokenAddress: Array.from(PublicKey.default.toBytes()),
+//   //     srcAmountLd: new anchor.BN(AmountsLD.SOL),
+//   //     exchangeRateSd: new anchor.BN(ExchangeRates.OneToOne),
+//   //   };
 
-//     const sth = await otc.quoteCreateOffer(params, accounts.seller);
-//     const receipt = sth[0];
-//     const fee = sth[1];
-//     const offer = await OtcTools.getOfferFromParams(
-//       program,
-//       Array.from(accounts.seller.publicKey.toBytes()),
-//       EndpointId.SOLANA_V2_TESTNET,
-//       params.dstEid,
-//       Array.from(PublicKey.default.toBytes()),
-//       params.dstTokenAddress,
-//       params.exchangeRateSd,
-//     );
+//   //   const sth = await otc.quoteCreateOffer(params, accounts.seller);
+//   //   const receipt = sth[0];
+//   //   const fee = sth[1];
+//   //   const offer = await OtcTools.getOfferFromParams(
+//   //     program,
+//   //     Array.from(accounts.seller.publicKey.toBytes()),
+//   //     EndpointId.SOLANA_V2_TESTNET,
+//   //     params.dstEid,
+//   //     Array.from(PublicKey.default.toBytes()),
+//   //     params.dstTokenAddress,
+//   //     params.exchangeRateSd,
+//   //   );
 
-//     assert(
-//       receipt.offerId.toString() == offer[1].toString(),
-//       "src seller address",
-//     );
-//     assert(
-//       receipt.srcAmountLd.toNumber() == params.srcAmountLd.toNumber(),
-//       "src amount ld",
-//     );
-//     assert(fee.nativeFee.toNumber() > 0, "native fee");
-//     assert(fee.lzTokenFee.toNumber() == 0, "lz token fee");
-//   });
+//   //   assert(
+//   //     receipt.offerId.toString() == offer[1].toString(),
+//   //     "src seller address",
+//   //   );
+//   //   assert(
+//   //     receipt.srcAmountLd.toNumber() == params.srcAmountLd.toNumber(),
+//   //     "src amount ld",
+//   //   );
+//   //   assert(fee.nativeFee.toNumber() > 0, "native fee");
+//   //   assert(fee.lzTokenFee.toNumber() == 0, "lz token fee");
+//   // });
 
 //   it("should create offer", async function () {
 //     const offer = await OtcTools.createOffer(

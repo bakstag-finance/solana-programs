@@ -140,7 +140,8 @@ describe("Accept Offer", () => {
       const quote = await otc.quoteAcceptOffer(params, accounts.buyer);
       const fee = quote[1];
 
-      await otc.acceptOffer(params, accounts.buyer, fee);
+      const signature = await otc.acceptOffer(params, accounts.buyer, fee);
+      console.log(signature);
     });
   });
 });

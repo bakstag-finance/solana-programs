@@ -1,4 +1,4 @@
-use crate::{Offer, OtcError};
+use crate::{ Offer, OtcError };
 
 #[repr(u8)]
 pub enum Message {
@@ -32,15 +32,14 @@ pub fn build_create_offer_payload(offer_id: &[u8; 32], offer: &Offer) -> Vec<u8>
         &offer.dst_token_address,
         &offer.src_amount_sd.to_be_bytes(),
         &offer.exchange_rate_sd.to_be_bytes(),
-    ]
-    .concat()
+    ].concat()
 }
 
 pub fn build_accept_offer_payload(
     offer_id: &[u8; 32],
     src_amount_sd: u64,
     src_buyer_address: &[u8; 32],
-    dst_buyer_address: &[u8; 32],
+    dst_buyer_address: &[u8; 32]
 ) -> Vec<u8> {
     [
         &(Message::OfferAccepted as u8).to_be_bytes() as &[u8],
@@ -48,8 +47,7 @@ pub fn build_accept_offer_payload(
         &src_amount_sd.to_be_bytes(),
         src_buyer_address,
         dst_buyer_address,
-    ]
-    .concat()
+    ].concat()
 }
 
 pub fn get_message_type(message: &[u8]) -> Result<Message, OtcError> {
@@ -73,4 +71,17 @@ pub fn decode_offer_created(message: &[u8], bump: u8) -> Offer {
 
         bump,
     }
+}
+
+pub fn src_buyer_address(message: &[u8]) -> [u8; 32] {
+    message[41..73].try_into().unwrap()
+}
+
+pub fn decode_offer_accepted(message: &[u8]) -> ([u8; 32], u64, [u8; 32], [u8; 32]) {
+    (
+        message[1..33].try_into().unwrap(),
+        u64::from_be_bytes(message[33..41].try_into().unwrap()),
+        message[41..73].try_into().unwrap(),
+        message[73..105].try_into().unwrap(),
+    )
 }

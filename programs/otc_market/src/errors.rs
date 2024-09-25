@@ -14,4 +14,5 @@ pub enum OtcError {
     OnlySeller,
     InvalidSender,
     InvalidMessageType,
+    InvalidSrcBuyer,
 }
