@@ -28,7 +28,7 @@ pub struct LzReceive<'info> {
     pub otc_config: Account<'info, OtcConfig>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         seeds = [&offer_id(&params.message)],
         space = 8 + Offer::INIT_SPACE,
@@ -44,10 +44,14 @@ pub struct LzReceive<'info> {
     /// CHECK: asserted against the one passed in the message payload
     pub src_buyer: Option<AccountInfo<'info>>,
 
+    #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
+    /// NOTICE: required for src sol token - from | required for src spl token - authority
+    pub escrow: Option<Box<Account<'info, Escrow>>>,
+
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::authority = src_buyer, // Pubkey::new_from_array(src_buyer_address(&params.message))
+        associated_token::authority = src_buyer,
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program
     )]
@@ -62,10 +66,6 @@ pub struct LzReceive<'info> {
     )]
     /// NOTICE: required for src spl token - from_ata
     pub src_escrow_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
-
-    #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
-    /// NOTICE: required for src sol token - from | required for src spl token - authority
-    pub escrow: Option<Box<Account<'info, Escrow>>>,
 
     #[account(
         mint::token_program = token_program,

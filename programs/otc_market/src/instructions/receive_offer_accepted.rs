@@ -1,29 +1,130 @@
 use crate::*;
 
 use oapp::endpoint_cpi::LzAccount;
+use anchor_spl::{
+    associated_token::{
+        get_associated_token_address_with_program_id,
+        ID as associated_token_program,
+    },
+    token::ID as token_program,
+};
 
 pub fn receive_offer_accepted_types(
     ctx: &Context<LzReceiveTypes>,
     message: &[u8]
 ) -> Vec<LzAccount> {
-    // 3..8 i.e. max 6 accounts
+    let (offer_id, _, src_buyer_address, _, src_token_address) = decode_offer_accepted(message);
 
-    // PROBLEM HERE - 7 > 6 accounts. Can be solved by not passing src_buyer as an account
-    // but constructing its publicKey directly from message.src_buyer_address
+    let (offer, _) = Pubkey::find_program_address(&[&offer_id], ctx.program_id);
 
-    let (offer, _) = Pubkey::find_program_address(&[&offer_id(message)], ctx.program_id);
+    let (escrow, _) = Pubkey::find_program_address(&[Escrow::ESCROW_SEED], ctx.program_id);
+    let src_buyer = Pubkey::new_from_array(src_buyer_address);
 
-    // PROBLEM HERE - cannot extract offer specific accounts since it is just a public key
+    if src_token_address == <[u8; 32]>::default() {
+        // src token is SOL
+        vec![
+            LzAccount {
+                pubkey: offer,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: src_buyer,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: escrow,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: *ctx.program_id,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: *ctx.program_id,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: *ctx.program_id,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: *ctx.program_id,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: *ctx.program_id,
+                is_signer: false,
+                is_writable: false,
+            }
+        ]
+    } else {
+        // src token is SPL
+        let src_token_mint = Pubkey::new_from_array(src_token_address);
+        let src_buyer_ata = get_associated_token_address_with_program_id(
+            &src_buyer,
+            &src_token_mint,
+            &token_program // stick to spl token program for mvp
+        );
+        let src_escrow_ata = get_associated_token_address_with_program_id(
+            &escrow,
+            &src_token_mint,
+            &token_program // stick to spl token program for mvp
+        );
 
-    vec![LzAccount {
-        pubkey: offer,
-        is_signer: false,
-        is_writable: true,
-    }]
+        vec![
+            LzAccount {
+                pubkey: offer,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: src_buyer,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: escrow,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: src_buyer_ata,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: src_escrow_ata,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: src_token_mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: associated_token_program,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: token_program,
+                is_signer: false,
+                is_writable: false,
+            }
+        ]
+    }
 }
 
 pub fn receive_offer_accepted(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -> Result<()> {
-    let (offer_id, src_amount_sd, src_buyer_address, dst_buyer_address) =
+    let (offer_id, src_amount_sd, src_buyer_address, dst_buyer_address, _) =
         decode_offer_accepted(message);
 
     let offer = &mut ctx.accounts.offer;

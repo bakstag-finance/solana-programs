@@ -9,7 +9,9 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
 ]);
 
 // export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
-export const PEER = "0xBcA736Bdf0711b46e5C98Cd626f7c6A45F56BA88"; // otc market arbitrum sepolia
+// export const PEER = "0xBcA736Bdf0711b46e5C98Cd626f7c6A45F56BA88"; // otc market arbitrum sepolia
+
+export const PEER = "0xf1932e2bf396e353a568A96c55C7C79DB346Ab76";
 export const COMMITMENT = "confirmed";
 export const SOLANA_EID = 40168;
 

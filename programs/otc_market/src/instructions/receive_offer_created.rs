@@ -8,11 +8,48 @@ pub fn receive_offer_created_types(
 ) -> Vec<LzAccount> {
     let (offer, _) = Pubkey::find_program_address(&[&offer_id(message)], ctx.program_id);
 
-    vec![LzAccount {
-        pubkey: offer,
-        is_signer: false,
-        is_writable: true,
-    }]
+    vec![
+        LzAccount {
+            pubkey: offer,
+            is_signer: false,
+            is_writable: true,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        },
+        LzAccount {
+            pubkey: *ctx.program_id,
+            is_signer: false,
+            is_writable: false,
+        }
+    ]
 }
 
 pub fn receive_offer_created(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -> Result<()> {

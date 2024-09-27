@@ -8,23 +8,11 @@ pub struct LzReceiveTypes<'info> {
     pub otc_config: Account<'info, OtcConfig>,
 }
 
-// account structure
-// account 0 - payer (executor)
-// account 1 - peer
-// account 2 - otc config
-// account 3..8 - message specific
-// account 9 - system program
-// account 10 - event authority
-// account 11 - this program
-// account remaining accounts
-//  0..9 - accounts for clear
-//  9..16 - accounts for compose
 impl LzReceiveTypes<'_> {
     pub fn apply(
         ctx: &Context<LzReceiveTypes>,
         params: &LzReceiveParams
     ) -> Result<Vec<LzAccount>> {
-        // accounts 0..2
         let (peer, _) = Pubkey::find_program_address(
             &[
                 Peer::PEER_SEED,
@@ -39,20 +27,19 @@ impl LzReceiveTypes<'_> {
                 pubkey: Pubkey::default(),
                 is_signer: true,
                 is_writable: true,
-            }, // 0
+            },
             LzAccount {
                 pubkey: peer,
                 is_signer: false,
                 is_writable: true,
-            }, // 1
+            },
             LzAccount {
                 pubkey: ctx.accounts.otc_config.key(),
                 is_signer: false,
                 is_writable: false,
-            } // 2
+            }
         ];
 
-        // accounts 3..8
         let msg_type = get_message_type(&params.message)?;
         let ix_accounts = match msg_type {
             Message::OfferCreated => receive_offer_created_types(ctx, &params.message),
@@ -60,7 +47,6 @@ impl LzReceiveTypes<'_> {
         };
         accounts.extend_from_slice(&ix_accounts);
 
-        // accounts 9..11
         let (event_authority_account, _) = Pubkey::find_program_address(
             &[oapp::endpoint_cpi::EVENT_SEED],
             &ctx.program_id
@@ -71,21 +57,20 @@ impl LzReceiveTypes<'_> {
                     pubkey: solana_program::system_program::ID,
                     is_signer: false,
                     is_writable: false,
-                }, // 9
+                },
                 LzAccount {
                     pubkey: event_authority_account,
                     is_signer: false,
                     is_writable: false,
-                }, // 10
+                },
                 LzAccount {
                     pubkey: ctx.program_id.key(),
                     is_signer: false,
                     is_writable: false,
-                }, // 11
+                },
             ]
         );
 
-        // remaining accounts 0..9
         let accounts_for_clear = oapp::endpoint_cpi::get_accounts_for_clear(
             ctx.accounts.otc_config.endpoint_program,
             &ctx.accounts.otc_config.key(),

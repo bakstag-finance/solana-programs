@@ -77,11 +77,12 @@ pub fn src_buyer_address(message: &[u8]) -> [u8; 32] {
     message[41..73].try_into().unwrap()
 }
 
-pub fn decode_offer_accepted(message: &[u8]) -> ([u8; 32], u64, [u8; 32], [u8; 32]) {
+pub fn decode_offer_accepted(message: &[u8]) -> ([u8; 32], u64, [u8; 32], [u8; 32], [u8; 32]) {
     (
         message[1..33].try_into().unwrap(),
         u64::from_be_bytes(message[33..41].try_into().unwrap()),
         message[41..73].try_into().unwrap(),
         message[73..105].try_into().unwrap(),
+        message[105..137].try_into().unwrap(),
     )
 }
