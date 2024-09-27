@@ -12,6 +12,8 @@ pub mod quote_create_offer;
 pub mod send;
 pub mod set_enforced_options;
 pub mod set_peer;
+pub mod receive_offer_created;
+pub mod receive_offer_accepted;
 
 pub use accept_offer::*;
 pub use cancel_offer::*;
@@ -27,3 +29,5 @@ pub use quote_create_offer::*;
 pub use send::*;
 pub use set_enforced_options::*;
 pub use set_peer::*;
+pub use receive_offer_created::*;
+pub use receive_offer_accepted::*;

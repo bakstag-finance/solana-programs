@@ -1,5 +1,9 @@
 use crate::*;
-use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token_interface::{ Mint, TokenAccount, TokenInterface },
+};
+use oapp::endpoint::{ cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext };
 
 #[event_cpi]
 #[derive(Accounts)]
@@ -24,13 +28,55 @@ pub struct LzReceive<'info> {
     pub otc_config: Account<'info, OtcConfig>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         seeds = [&offer_id(&params.message)],
         space = 8 + Offer::INIT_SPACE,
         bump
     )]
     pub offer: Account<'info, Offer>,
+
+    /// NOTICE: required for offer accepted message
+
+    #[account(
+        constraint = src_buyer.key() == Pubkey::new_from_array(src_buyer_address(&params.message)) @ OtcError::InvalidSrcBuyer
+    )]
+    /// CHECK: asserted against the one passed in the message payload
+    pub src_buyer: Option<AccountInfo<'info>>,
+
+    #[account(mut, seeds = [Escrow::ESCROW_SEED], bump = escrow.bump)]
+    /// NOTICE: required for src sol token - from | required for src spl token - authority
+    pub escrow: Option<Box<Account<'info, Escrow>>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::authority = src_buyer,
+        associated_token::mint = src_token_mint,
+        associated_token::token_program = token_program
+    )]
+    /// NOTICE: required for src spl token - to_ata
+    pub src_buyer_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+
+    #[account(
+        mut,
+        associated_token::authority = escrow,
+        associated_token::mint = src_token_mint,
+        associated_token::token_program = token_program
+    )]
+    /// NOTICE: required for src spl token - from_ata
+    pub src_escrow_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+
+    #[account(
+        mint::token_program = token_program,
+        constraint = src_token_mint.key() == Pubkey::new_from_array(offer.src_token_address) @ OtcError::InvalidSrcTokenMint
+    )]
+    /// NOTICE: required for src spl token - token_mint
+    pub src_token_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
+
+    pub associated_token_program: Option<Program<'info, AssociatedToken>>,
+
+    pub token_program: Option<Interface<'info, TokenInterface>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -43,8 +89,11 @@ impl LzReceive<'_> {
             Message::OfferCreated => {
                 receive_offer_created(ctx, &params.message)?;
             }
-            _ => (),
-        };
+            Message::OfferAccepted => {
+                receive_offer_accepted(ctx, &params.message)?;
+            }
+            // _ => (),
+        }
 
         // clear
         oapp::endpoint_cpi::clear(
@@ -59,59 +108,9 @@ impl LzReceive<'_> {
                 nonce: params.nonce,
                 guid: params.guid,
                 message: params.message.clone(),
-            },
+            }
         )?;
 
         Ok(())
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_offer_encoding_decoding() {
-//         // Create a sample offer
-//         let offer_id = [9u8; 32];
-//         let offer = Offer {
-//             src_seller_address: [1u8; 32],
-//             dst_seller_address: [2u8; 32],
-//             src_eid: 123u32,
-//             dst_eid: 456u32,
-//             src_token_address: [3u8; 32],
-//             dst_token_address: [4u8; 32],
-//             src_amount_sd: 1000u64,
-//             exchange_rate_sd: 500u64,
-//             bump: 8u8,
-//         };
-//         const ERROR: &'static str = "Slice with incorrect length";
-
-//         let payload = build_create_offer_payload(&offer_id, &offer);
-
-//         assert_eq!(
-//             <&[u8] as TryInto<Vec<u8>>>::try_into(&payload[1..33]).expect(&ERROR),
-//             [9u8; 32]
-//         );
-//         assert_eq!(
-//             <&[u8] as TryInto<Vec<u8>>>::try_into(&payload[33..65]).expect(&ERROR),
-//             [1u8; 32]
-//         );
-//         assert_eq!(
-//             <&[u8] as TryInto<Vec<u8>>>::try_into(&payload[65..97]).expect(&ERROR),
-//             [2u8; 32]
-//         );
-//         assert_eq!(u32::from_be_bytes(payload[97..101].try_into().expect(&ERROR)), 123u32);
-//         assert_eq!(u32::from_be_bytes(payload[101..105].try_into().expect(&ERROR)), 456u32);
-//         assert_eq!(
-//             <&[u8] as TryInto<Vec<u8>>>::try_into(&payload[105..137]).expect(&ERROR),
-//             [3u8; 32]
-//         );
-//         assert_eq!(
-//             <&[u8] as TryInto<Vec<u8>>>::try_into(&payload[137..169]).expect(&ERROR),
-//             [4u8; 32]
-//         );
-//         assert_eq!(u64::from_be_bytes(payload[169..177].try_into().expect(&ERROR)), 1000u64);
-//         assert_eq!(u64::from_be_bytes(payload[177..185].try_into().expect(&ERROR)), 500u64);
-//     }
-// }
