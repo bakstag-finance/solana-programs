@@ -14,6 +14,7 @@ pub mod set_enforced_options;
 pub mod set_peer;
 pub mod receive_offer_created;
 pub mod receive_offer_accepted;
+pub mod quote_cancel_offer;
 
 pub use accept_offer::*;
 pub use cancel_offer::*;
@@ -31,3 +32,4 @@ pub use set_enforced_options::*;
 pub use set_peer::*;
 pub use receive_offer_created::*;
 pub use receive_offer_accepted::*;
+pub use quote_cancel_offer::*;

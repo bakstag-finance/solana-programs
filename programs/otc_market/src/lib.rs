@@ -116,6 +116,14 @@ pub mod otc_market {
         QuoteCancelOfferOrder::apply(&mut ctx, &offer_id, &extra_options, pay_in_lz_token)
     }
 
+    /// see [quote_cancel_offer]
+    pub fn quote_cancel_offer(
+        mut ctx: Context<QuoteCancelOffer>,
+        offer_id: [u8; 32]
+    ) -> Result<MessagingFee> {
+        QuoteCancelOffer::apply(&mut ctx, &offer_id)
+    }
+
     /// see [cancel_offer]
     pub fn cancel_offer(
         mut ctx: Context<CancelOffer>,
@@ -126,10 +134,12 @@ pub mod otc_market {
         CancelOffer::apply(&mut ctx, &offer_id, &fee, &extra_options)
     }
 
+    /// see [lz_receive]
     pub fn lz_receive(mut ctx: Context<LzReceive>, params: LzReceiveParams) -> Result<()> {
         LzReceive::apply(&mut ctx, &params)
     }
 
+    /// see [lz_receive_types]
     pub fn lz_receive_types(
         ctx: Context<LzReceiveTypes>,
         params: LzReceiveParams
