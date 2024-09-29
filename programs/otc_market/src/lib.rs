@@ -106,13 +106,14 @@ pub mod otc_market {
         AcceptOffer::apply(&mut ctx, &params, &fee)
     }
 
-    /// see [quote_cancel_offer]
-    pub fn quote_cancel_offer(
+    /// see [quote_cancel_offer_order]
+    pub fn quote_cancel_offer_order(
         mut ctx: Context<QuoteCancelOfferOrder>,
-        src_seller_address: [u8; 32],
-        offer_id: [u8; 32]
-    ) -> Result<()> {
-        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &offer_id)
+        offer_id: [u8; 32],
+        extra_options: Vec<u8>,
+        pay_in_lz_token: bool
+    ) -> Result<MessagingFee> {
+        QuoteCancelOfferOrder::apply(&mut ctx, &offer_id, &extra_options, pay_in_lz_token)
     }
 
     /// see [cancel_offer]
