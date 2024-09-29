@@ -35,6 +35,10 @@ pub fn build_create_offer_payload(offer_id: &[u8; 32], offer: &Offer) -> Vec<u8>
     ].concat()
 }
 
+pub fn build_cancel_offer_payload(offer_id: &[u8; 32]) -> Vec<u8> {
+    offer_id.to_vec()
+}
+
 pub fn build_accept_offer_payload(
     offer_id: &[u8; 32],
     src_amount_sd: u64,

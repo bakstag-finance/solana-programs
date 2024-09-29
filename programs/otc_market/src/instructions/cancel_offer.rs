@@ -1,9 +1,14 @@
 use crate::*;
 use anchor_spl::token_interface::{ Mint, TokenInterface, TokenAccount };
+use oapp::endpoint::{
+    instructions::SendParams as EndpointSendParams,
+    MessagingFee,
+    MessagingReceipt,
+};
 
 #[event_cpi]
 #[derive(Accounts)]
-#[instruction(offer_id: [u8; 32])]
+#[instruction(offer_id: [u8; 32], fee: MessagingFee, extra_options: Vec<u8>)]
 pub struct CancelOffer<'info> {
     #[account(mut)]
     pub seller: Signer<'info>,
@@ -52,11 +57,36 @@ pub struct CancelOffer<'info> {
     /// NOTICE: required for src spl token - token_mint
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
 
+    #[account(
+        seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &offer.dst_eid.to_be_bytes()],
+        bump = peer.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub peer: Option<Account<'info, Peer>>,
+
+    #[account(
+        seeds = [
+            EnforcedOptions::ENFORCED_OPTIONS_SEED,
+            otc_config.key().as_ref(),
+            &offer.dst_eid.to_be_bytes(),
+        ],
+        bump = enforced_options.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub enforced_options: Option<Account<'info, EnforcedOptions>>,
+
     pub token_program: Option<Interface<'info, TokenInterface>>,
 }
 
 impl CancelOffer<'_> {
-    pub fn apply(ctx: &mut Context<CancelOffer>, offer_id: &[u8; 32]) -> Result<()> {
+    pub fn apply(
+        ctx: &mut Context<CancelOffer>,
+        offer_id: &[u8; 32],
+        fee: &MessagingFee,
+        extra_options: &Vec<u8>
+    ) -> Result<MessagingReceipt> {
+        let mut receipt = MessagingReceipt::default();
+
         if ctx.accounts.offer.src_eid == ctx.accounts.offer.dst_eid {
             // monochain offer
             let escrow = ctx.accounts.escrow.as_ref().expect(OtcConfig::ERROR_MSG);
@@ -90,9 +120,29 @@ impl CancelOffer<'_> {
             });
         } else {
             // crosschain offer
+            let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
+            let enforced_options = ctx.accounts.enforced_options
+                .as_ref()
+                .expect(OtcConfig::ERROR_MSG);
 
+            let payload = build_cancel_offer_payload(&offer_id);
+
+            receipt = oapp::endpoint_cpi::send(
+                ctx.accounts.otc_config.endpoint_program,
+                ctx.accounts.otc_config.key(),
+                ctx.remaining_accounts,
+                &[OtcConfig::OTC_SEED, &[ctx.accounts.otc_config.bump]],
+                EndpointSendParams {
+                    dst_eid: ctx.accounts.offer.dst_eid,
+                    receiver: peer.address,
+                    message: payload,
+                    options: enforced_options.combine_options(&None, extra_options)?,
+                    native_fee: fee.native_fee,
+                    lz_token_fee: fee.lz_token_fee,
+                }
+            )?;
         }
 
-        Ok(())
+        Ok(receipt)
     }
 }
