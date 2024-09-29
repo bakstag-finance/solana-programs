@@ -4,8 +4,8 @@ use crate::{ Offer, OtcError };
 pub enum Message {
     OfferCreated = 0,
     OfferAccepted = 1,
-    // OfferCancelOrder = 2,
-    // OfferCanceled = 3,
+    OfferCancelOrder = 2,
+    OfferCanceled = 3,
 }
 
 impl TryFrom<u8> for Message {
@@ -15,6 +15,8 @@ impl TryFrom<u8> for Message {
         match value {
             0 => Ok(Message::OfferCreated),
             1 => Ok(Message::OfferAccepted),
+            2 => Ok(Message::OfferCancelOrder),
+            3 => Ok(Message::OfferCanceled),
             _ => Err(OtcError::InvalidMessageType), // Return an error for unsupported values
         }
     }
@@ -35,8 +37,12 @@ pub fn build_create_offer_payload(offer_id: &[u8; 32], offer: &Offer) -> Vec<u8>
     ].concat()
 }
 
+pub fn build_cancel_offer_order_payload(offer_id: &[u8; 32]) -> Vec<u8> {
+    [&(Message::OfferCancelOrder as u8).to_be_bytes() as &[u8], offer_id].concat()
+}
+
 pub fn build_cancel_offer_payload(offer_id: &[u8; 32]) -> Vec<u8> {
-    offer_id.to_vec()
+    [&(Message::OfferCanceled as u8).to_be_bytes() as &[u8], offer_id].concat()
 }
 
 pub fn build_accept_offer_payload(
@@ -89,4 +95,8 @@ pub fn decode_offer_accepted(message: &[u8]) -> ([u8; 32], u64, [u8; 32], [u8; 3
         message[73..105].try_into().unwrap(),
         message[105..137].try_into().unwrap(),
     )
+}
+
+pub fn decode_offer_cancel_order(message: &[u8]) -> [u8; 32] {
+    offer_id(message)
 }

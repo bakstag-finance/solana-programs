@@ -46,7 +46,7 @@ impl QuoteCancelOfferOrder<'_> {
         extra_options: &Vec<u8>,
         pay_in_lz_token: bool
     ) -> Result<MessagingFee> {
-        let payload = build_cancel_offer_payload(&offer_id);
+        let payload = build_cancel_offer_order_payload(&offer_id);
 
         let messaging_fee = oapp::endpoint_cpi::quote(
             ctx.accounts.otc_config.endpoint_program,

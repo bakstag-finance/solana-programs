@@ -78,6 +78,18 @@ pub struct LzReceive<'info> {
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 
+    /// NOTICE: required for offer cancel order message
+
+    #[account(
+        seeds = [
+            EnforcedOptions::ENFORCED_OPTIONS_SEED,
+            otc_config.key().as_ref(),
+            &params.src_eid.to_be_bytes(), // equivalent to offer.src_eid
+        ],
+        bump = enforced_options.bump
+    )]
+    pub enforced_options: Option<Account<'info, EnforcedOptions>>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -92,7 +104,10 @@ impl LzReceive<'_> {
             Message::OfferAccepted => {
                 receive_offer_accepted(ctx, &params.message)?;
             }
-            // _ => (),
+            Message::OfferCancelOrder => {
+                receive_offer_cancel_order(ctx, &params.message)?;
+            }
+            _ => (),
         }
 
         // clear
