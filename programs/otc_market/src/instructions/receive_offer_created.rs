@@ -7,6 +7,11 @@ pub fn receive_offer_created_types(
     message: &[u8]
 ) -> Vec<LzAccount> {
     let (offer, _) = Pubkey::find_program_address(&[&offer_id(message)], ctx.program_id);
+    let null_account = LzAccount {
+        pubkey: *ctx.program_id,
+        is_signer: false,
+        is_writable: false,
+    };
 
     vec![
         LzAccount {
@@ -14,41 +19,15 @@ pub fn receive_offer_created_types(
             is_signer: false,
             is_writable: true,
         },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        },
-        LzAccount {
-            pubkey: *ctx.program_id,
-            is_signer: false,
-            is_writable: false,
-        }
+        null_account.clone(), // NO enforced_options
+        null_account.clone(), // NO src_buyer
+        null_account.clone(), // NO src_buyer_ata
+        null_account.clone(), // NO src_seller
+        null_account.clone(), // NO src_seller_ata
+        null_account.clone(), // NO escrow
+        null_account.clone(), // NO src_escrow_ata
+        null_account.clone(), // NO associated_token_program
+        null_account.clone() // NO token_program
     ]
 }
 

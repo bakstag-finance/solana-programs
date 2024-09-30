@@ -18,7 +18,6 @@ pub struct CancelOffer<'info> {
 
     #[account(
         mut,
-        close = seller,
         seeds = [&offer_id], 
         bump = offer.bump,
         constraint = offer.src_eid == OtcConfig::EID @ OtcError::InvalidEid,
@@ -118,6 +117,9 @@ impl CancelOffer<'_> {
             emit_cpi!(OfferCanceled {
                 offer_id: *offer_id,
             });
+
+            // delete offer
+            close(ctx.accounts.offer.to_account_info(), ctx.accounts.seller.to_account_info())?;
         } else {
             // crosschain offer
             let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);

@@ -46,7 +46,7 @@ impl LzReceiveTypes<'_> {
             Message::OfferAccepted => receive_offer_accepted_types(ctx, &params.message),
             Message::OfferCancelOrder =>
                 receive_offer_cancel_order_types(ctx, &params.message, params.src_eid),
-            Message::OfferCanceled => <Vec<LzAccount>>::default(),
+            Message::OfferCanceled => receive_offer_canceled_types(ctx, &params.message),
         };
         accounts.extend_from_slice(&ix_accounts);
 

@@ -100,3 +100,15 @@ pub fn decode_offer_accepted(message: &[u8]) -> ([u8; 32], u64, [u8; 32], [u8; 3
 pub fn decode_offer_cancel_order(message: &[u8]) -> [u8; 32] {
     offer_id(message)
 }
+
+pub fn decode_offer_canceled(message: &[u8]) -> ([u8; 32], [u8; 32], [u8; 32]) {
+    (
+        message[1..33].try_into().unwrap(),
+        message[33..65].try_into().unwrap(),
+        message[65..97].try_into().unwrap(),
+    )
+}
+
+pub fn src_seller_address(message: &[u8]) -> [u8; 32] {
+    message[33..65].try_into().unwrap()
+}
