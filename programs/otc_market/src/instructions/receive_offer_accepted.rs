@@ -39,8 +39,6 @@ pub fn receive_offer_accepted_types(
                 is_writable: false,
             }, // src_buyer
             null_account.clone(), // NO src_buyer_ata
-            null_account.clone(), // NO src_seller
-            null_account.clone(), // NO src_seller_ata
             LzAccount {
                 pubkey: escrow,
                 is_signer: false,
@@ -82,8 +80,6 @@ pub fn receive_offer_accepted_types(
                 is_signer: false,
                 is_writable: true,
             }, // src_buyer_ata
-            null_account.clone(), // NO src_seller
-            null_account.clone(), // NO src_seller_ata
             LzAccount {
                 pubkey: escrow,
                 is_signer: false,
@@ -144,11 +140,11 @@ pub fn receive_offer_accepted(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -
         OtcConfig::transfer(
             escrow.to_account_info().as_ref(),
             src_amount_ld,
-            ctx.accounts.src_buyer.as_ref(),
+            ctx.accounts.src_actor.as_ref(),
             ctx.accounts.token_program.as_ref(),
             ctx.accounts.src_escrow_ata.as_deref(),
             src_token_mint,
-            ctx.accounts.src_buyer_ata.as_deref(),
+            ctx.accounts.src_actor_ata.as_deref(),
             Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
         )?;
     }

@@ -20,12 +20,11 @@ pub fn receive_offer_created_types(
             is_writable: true,
         },
         null_account.clone(), // NO enforced_options
-        null_account.clone(), // NO src_buyer
-        null_account.clone(), // NO src_buyer_ata
-        null_account.clone(), // NO src_seller
-        null_account.clone(), // NO src_seller_ata
+        null_account.clone(), // NO src_actor
+        null_account.clone(), // NO src_actor_ata
         null_account.clone(), // NO escrow
         null_account.clone(), // NO src_escrow_ata
+        null_account.clone(), // NO src_token_mint
         null_account.clone(), // NO associated_token_program
         null_account.clone() // NO token_program
     ]

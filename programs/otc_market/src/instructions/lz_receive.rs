@@ -49,38 +49,20 @@ pub struct LzReceive<'info> {
     )]
     pub enforced_options: Option<Account<'info, EnforcedOptions>>,
 
-    /// NOTICE: required for offer accepted message
+    /// NOTICE: required for offer accepted message or required for offer canceled message
 
-    #[account(
-        constraint = src_buyer.key() == Pubkey::new_from_array(src_buyer_address(&params.message)) @ OtcError::InvalidSrcBuyer
-    )]
-    /// CHECK: assert against the one passed in message
-    pub src_buyer: Option<AccountInfo<'info>>,
+    #[account()]
+    /// CHECK: src_buyer or src_seller
+    pub src_actor: Option<AccountInfo<'info>>,
 
     #[account(
         init_if_needed,
         payer = payer,
-        associated_token::authority = src_buyer,
+        associated_token::authority = src_actor,
         associated_token::mint = src_token_mint,
         associated_token::token_program = token_program
     )]
-    pub src_buyer_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
-
-    /// NOTICE: required for offer canceled message
-
-    #[account(
-        constraint = src_seller.key() == Pubkey::new_from_array(src_seller_address(&params.message)) @ OtcError::InvalidSrcSeller
-    )]
-    /// CHECK: assert against the one passed in message
-    pub src_seller: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        associated_token::authority = src_seller,
-        associated_token::mint = src_token_mint,
-        associated_token::token_program = token_program
-    )]
-    pub src_seller_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    pub src_actor_ata: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
 
     /// NOTICE: required for offer accepted & offer canceled message
 

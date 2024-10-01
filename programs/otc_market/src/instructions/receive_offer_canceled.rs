@@ -35,8 +35,6 @@ pub fn receive_offer_canceled_types(
                 is_writable: true,
             },
             null_account.clone(), // NO enforced_options
-            null_account.clone(), // NO src_buyer
-            null_account.clone(), // NO src_buyer_ata
             LzAccount {
                 pubkey: src_seller,
                 is_signer: false,
@@ -49,6 +47,7 @@ pub fn receive_offer_canceled_types(
                 is_writable: true,
             }, // escrow
             null_account.clone(), // NO src_escrow_ata
+            null_account.clone(), // NO src_token_mint
             null_account.clone(), // NO associated_token_program
             null_account.clone() // NO token_program
         ]
@@ -74,8 +73,6 @@ pub fn receive_offer_canceled_types(
                 is_writable: true,
             },
             null_account.clone(), // NO enforced_options
-            null_account.clone(), // NO src_buyer
-            null_account.clone(), // NO src_buyer_ata
             LzAccount {
                 pubkey: src_seller,
                 is_signer: false,
@@ -131,11 +128,11 @@ pub fn receive_offer_canceled(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -
     OtcConfig::transfer(
         escrow.as_ref(),
         amount_ld,
-        Some(ctx.accounts.src_seller.as_ref()),
+        ctx.accounts.src_actor.as_ref(),
         ctx.accounts.token_program.as_ref(),
         ctx.accounts.src_escrow_ata.as_deref(),
         src_token_mint,
-        ctx.accounts.src_seller_ata.as_deref(),
+        ctx.accounts.src_actor_ata.as_deref(),
         Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
     )?;
 
@@ -145,7 +142,10 @@ pub fn receive_offer_canceled(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -
     });
 
     // delete offer
-    close(ctx.accounts.offer.to_account_info(), ctx.accounts.src_seller.to_account_info())?;
+    close(
+        ctx.accounts.offer.to_account_info(),
+        ctx.accounts.src_actor.as_ref().expect(OtcConfig::ERROR_MSG).to_account_info()
+    )?;
 
     Ok(())
 }
