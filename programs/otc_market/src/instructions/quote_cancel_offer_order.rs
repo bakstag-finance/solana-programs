@@ -1,20 +1,15 @@
 use crate::*;
-use oapp::endpoint::{ instructions::QuoteParams as EndpointQuoteParams, MessagingFee };
+use oapp::endpoint::{instructions::QuoteParams as EndpointQuoteParams, MessagingFee};
 
 #[derive(Accounts)]
-#[instruction(offer_id: [u8; 32])]
+#[instruction(src_seller_address: [u8; 32], offer_id: [u8; 32])]
 pub struct QuoteCancelOfferOrder<'info> {
-    #[account(
-        mut,
-        constraint = offer.src_seller_address == seller.key().to_bytes() @ OtcError::OnlySeller,
-    )]
-    pub seller: Signer<'info>,
-
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
 
     #[account(
         seeds = [&offer_id], bump = offer.bump,
+        constraint = offer.src_seller_address == src_seller_address @ OtcError::OnlySeller,
         constraint = offer.src_eid == OtcConfig::EID @ OtcError::InvalidEid,
         constraint = offer.src_eid != offer.dst_eid @ OtcError::NotCrosschainOffer
     )]
@@ -42,9 +37,10 @@ pub struct QuoteCancelOfferOrder<'info> {
 impl QuoteCancelOfferOrder<'_> {
     pub fn apply(
         ctx: &mut Context<QuoteCancelOfferOrder>,
+        _src_seller_address: &[u8; 32],
         offer_id: &[u8; 32],
         extra_options: &Vec<u8>,
-        pay_in_lz_token: bool
+        pay_in_lz_token: bool,
     ) -> Result<MessagingFee> {
         let payload = build_cancel_offer_order_payload(&offer_id);
 
@@ -57,8 +53,11 @@ impl QuoteCancelOfferOrder<'_> {
                 receiver: ctx.accounts.peer.address,
                 message: payload,
                 pay_in_lz_token,
-                options: ctx.accounts.enforced_options.combine_options(&None, extra_options)?,
-            }
+                options: ctx
+                    .accounts
+                    .enforced_options
+                    .combine_options(&None, extra_options)?,
+            },
         )?;
 
         Ok(messaging_fee)
