@@ -54,6 +54,7 @@ pub struct LzReceive<'info> {
     #[account(
         constraint = src_buyer.key() == Pubkey::new_from_array(src_buyer_address(&params.message)) @ OtcError::InvalidSrcBuyer
     )]
+    /// CHECK: assert against the one passed in message
     pub src_buyer: Option<AccountInfo<'info>>,
 
     #[account(
@@ -70,6 +71,7 @@ pub struct LzReceive<'info> {
     #[account(
         constraint = src_seller.key() == Pubkey::new_from_array(src_seller_address(&params.message)) @ OtcError::InvalidSrcSeller
     )]
+    /// CHECK: assert against the one passed in message
     pub src_seller: AccountInfo<'info>,
 
     #[account(

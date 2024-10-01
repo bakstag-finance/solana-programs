@@ -1,5 +1,6 @@
 use crate::*;
 use anchor_spl::{
+    token::ID as TOKEN_PROGRAM_ID,
     associated_token::AssociatedToken,
     token_interface::{ Mint, TokenAccount, TokenInterface },
 };
@@ -84,6 +85,9 @@ pub struct CreateOffer<'info> {
     /// NOTICE: required for crosschain offer
     pub enforced_options: Option<Account<'info, EnforcedOptions>>,
 
+    #[account(
+        constraint = token_program.key() == TOKEN_PROGRAM_ID // stick to spl token program for mvp
+    )]
     pub token_program: Option<Interface<'info, TokenInterface>>,
 
     pub associated_token_program: Option<Program<'info, AssociatedToken>>,
