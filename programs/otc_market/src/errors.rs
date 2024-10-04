@@ -15,4 +15,6 @@ pub enum OtcError {
     InvalidSender,
     InvalidMessageType,
     InvalidSrcBuyer,
+    InvalidSrcSeller,
+    NotCrosschainOffer,
 }

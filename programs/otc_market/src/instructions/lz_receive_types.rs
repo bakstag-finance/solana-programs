@@ -44,6 +44,9 @@ impl LzReceiveTypes<'_> {
         let ix_accounts = match msg_type {
             Message::OfferCreated => receive_offer_created_types(ctx, &params.message),
             Message::OfferAccepted => receive_offer_accepted_types(ctx, &params.message),
+            Message::OfferCancelOrder =>
+                receive_offer_cancel_order_types(ctx, &params.message, params.src_eid),
+            Message::OfferCanceled => receive_offer_canceled_types(ctx, &params.message),
         };
         accounts.extend_from_slice(&ix_accounts);
 

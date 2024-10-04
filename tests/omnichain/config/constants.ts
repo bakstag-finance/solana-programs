@@ -11,7 +11,8 @@ export const TREASURY_SECRET_KEY = Uint8Array.from([
 // export const PEER = "0x8b15355c1BFA15eB0c2D2FB4C7AfD7bA8AE548Cd";
 // export const PEER = "0xBcA736Bdf0711b46e5C98Cd626f7c6A45F56BA88"; // otc market arbitrum sepolia
 
-export const PEER = "0xf1932e2bf396e353a568A96c55C7C79DB346Ab76";
+// export const PEER = "0xf1932e2bf396e353a568A96c55C7C79DB346Ab76"; // old?
+export const PEER = "0xf0Cf40696e7b7749ffC18AB5F48dB010125bCE7b";
 export const COMMITMENT = "confirmed";
 export const SOLANA_EID = 40168;
 
@@ -21,7 +22,7 @@ enum Token {
   ERC20,
   ETH,
 }
-const GAS = 100_000_000; // 0.1 sol
+const GAS = 100_000_000; // .1 sol
 
 const Decimals = {
   SOL: 9,

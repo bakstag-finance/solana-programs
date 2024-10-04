@@ -12,12 +12,9 @@ use instructions::*;
 use msg_codec::*;
 use state::*;
 
-use oapp::{
-    endpoint::{MessagingFee, MessagingReceipt},
-    LzReceiveParams,
-};
+use oapp::{ endpoint::{ MessagingFee, MessagingReceipt }, LzReceiveParams };
 
-declare_id!("DRYmAGUxYC75thLBDaR9biCHFeTijd2eAFJhvsPKMB7B");
+declare_id!("FJHKPEHruveGCdK4jUgF1CxYnBGFXfMWEzGqKbdW4U63");
 
 #[program]
 pub mod otc_market {
@@ -36,7 +33,7 @@ pub mod otc_market {
     /// see [set_enforced_options]
     pub fn set_enforced_options(
         mut ctx: Context<SetEnforcedOptions>,
-        params: SetEnforcedOptionsParams,
+        params: SetEnforcedOptionsParams
     ) -> Result<()> {
         SetEnforcedOptions::apply(&mut ctx, &params)
     }
@@ -59,7 +56,7 @@ pub mod otc_market {
         dst_eid: u32,
         src_token_address: [u8; 32],
         dst_token_address: [u8; 32],
-        exchange_rate_sd: u64,
+        exchange_rate_sd: u64
     ) -> Result<[u8; 32]> {
         HashOffer::apply(
             &src_seller_address,
@@ -67,7 +64,7 @@ pub mod otc_market {
             dst_eid,
             &src_token_address,
             &dst_token_address,
-            exchange_rate_sd,
+            exchange_rate_sd
         )
     }
 
@@ -76,7 +73,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteCreateOffer>,
         src_seller_address: [u8; 32],
         params: CreateOfferParams,
-        pay_in_lz_token: bool,
+        pay_in_lz_token: bool
     ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         QuoteCreateOffer::apply(&mut ctx, &src_seller_address, &params, pay_in_lz_token)
     }
@@ -85,7 +82,7 @@ pub mod otc_market {
     pub fn create_offer(
         mut ctx: Context<CreateOffer>,
         params: CreateOfferParams,
-        fee: MessagingFee,
+        fee: MessagingFee
     ) -> Result<(CreateOfferReceipt, MessagingReceipt)> {
         CreateOffer::apply(&mut ctx, &params, &fee)
     }
@@ -95,7 +92,7 @@ pub mod otc_market {
         mut ctx: Context<QuoteAcceptOffer>,
         dst_buyer_address: [u8; 32],
         params: AcceptOfferParams,
-        pay_in_lz_token: bool,
+        pay_in_lz_token: bool
     ) -> Result<(AcceptOfferReceipt, MessagingFee)> {
         QuoteAcceptOffer::apply(&mut ctx, &dst_buyer_address, &params, pay_in_lz_token)
     }
@@ -104,32 +101,48 @@ pub mod otc_market {
     pub fn accept_offer(
         mut ctx: Context<AcceptOffer>,
         params: AcceptOfferParams,
-        fee: MessagingFee,
+        fee: MessagingFee
     ) -> Result<(AcceptOfferReceipt, MessagingReceipt)> {
         AcceptOffer::apply(&mut ctx, &params, &fee)
     }
 
+    /// see [quote_cancel_offer_order]
+    pub fn quote_cancel_offer_order(
+        mut ctx: Context<QuoteCancelOfferOrder>,
+        offer_id: [u8; 32],
+        extra_options: Vec<u8>,
+        pay_in_lz_token: bool
+    ) -> Result<MessagingFee> {
+        QuoteCancelOfferOrder::apply(&mut ctx, &offer_id, &extra_options, pay_in_lz_token)
+    }
+
     /// see [quote_cancel_offer]
     pub fn quote_cancel_offer(
-        mut ctx: Context<QuoteCancelOfferOrder>,
-        src_seller_address: [u8; 32],
-        offer_id: [u8; 32],
-    ) -> Result<()> {
-        QuoteCancelOfferOrder::apply(&mut ctx, &src_seller_address, &offer_id)
+        mut ctx: Context<QuoteCancelOffer>,
+        offer_id: [u8; 32]
+    ) -> Result<MessagingFee> {
+        QuoteCancelOffer::apply(&mut ctx, &offer_id)
     }
 
     /// see [cancel_offer]
-    pub fn cancel_offer(mut ctx: Context<CancelOffer>, offer_id: [u8; 32]) -> Result<()> {
-        CancelOffer::apply(&mut ctx, &offer_id)
+    pub fn cancel_offer(
+        mut ctx: Context<CancelOffer>,
+        offer_id: [u8; 32],
+        fee: MessagingFee,
+        extra_options: Vec<u8>
+    ) -> Result<MessagingReceipt> {
+        CancelOffer::apply(&mut ctx, &offer_id, &fee, &extra_options)
     }
 
+    /// see [lz_receive]
     pub fn lz_receive(mut ctx: Context<LzReceive>, params: LzReceiveParams) -> Result<()> {
         LzReceive::apply(&mut ctx, &params)
     }
 
+    /// see [lz_receive_types]
     pub fn lz_receive_types(
         ctx: Context<LzReceiveTypes>,
-        params: LzReceiveParams,
+        params: LzReceiveParams
     ) -> Result<Vec<oapp::endpoint_cpi::LzAccount>> {
         LzReceiveTypes::apply(&ctx, &params)
     }

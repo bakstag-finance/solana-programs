@@ -9,15 +9,17 @@ use anchor_spl::{
     token::ID as token_program,
 };
 
-pub fn receive_offer_accepted_types(
+// receive offer canceled
+
+pub fn receive_offer_canceled_types(
     ctx: &Context<LzReceiveTypes>,
     message: &[u8]
 ) -> Vec<LzAccount> {
-    let (offer_id, _, src_buyer_address, _, src_token_address) = decode_offer_accepted(message);
+    let (offer_id, src_seller_address, src_token_address) = decode_offer_canceled(message);
 
     let (offer, _) = Pubkey::find_program_address(&[&offer_id], ctx.program_id);
+    let src_seller = Pubkey::new_from_array(src_seller_address);
     let (escrow, _) = Pubkey::find_program_address(&[Escrow::ESCROW_SEED], ctx.program_id);
-    let src_buyer = Pubkey::new_from_array(src_buyer_address);
     let null_account = LzAccount {
         pubkey: *ctx.program_id,
         is_signer: false,
@@ -34,11 +36,11 @@ pub fn receive_offer_accepted_types(
             },
             null_account.clone(), // NO enforced_options
             LzAccount {
-                pubkey: src_buyer,
+                pubkey: src_seller,
                 is_signer: false,
-                is_writable: false,
-            }, // src_buyer
-            null_account.clone(), // NO src_buyer_ata
+                is_writable: true,
+            }, // src_seller
+            null_account.clone(), // NO src_seller_ata
             LzAccount {
                 pubkey: escrow,
                 is_signer: false,
@@ -52,8 +54,9 @@ pub fn receive_offer_accepted_types(
     } else {
         // src token is SPL
         let src_token_mint = Pubkey::new_from_array(src_token_address);
-        let src_buyer_ata = get_associated_token_address_with_program_id(
-            &src_buyer,
+
+        let src_seller_ata = get_associated_token_address_with_program_id(
+            &src_seller,
             &src_token_mint,
             &token_program // stick to spl token program for mvp
         );
@@ -71,15 +74,15 @@ pub fn receive_offer_accepted_types(
             },
             null_account.clone(), // NO enforced_options
             LzAccount {
-                pubkey: src_buyer,
-                is_signer: false,
-                is_writable: false,
-            }, // src_buyer
-            LzAccount {
-                pubkey: src_buyer_ata,
+                pubkey: src_seller,
                 is_signer: false,
                 is_writable: true,
-            }, // src_buyer_ata
+            }, // src_seller
+            LzAccount {
+                pubkey: src_seller_ata,
+                is_signer: false,
+                is_writable: true,
+            }, // src_seller_ata
             LzAccount {
                 pubkey: escrow,
                 is_signer: false,
@@ -109,45 +112,40 @@ pub fn receive_offer_accepted_types(
     }
 }
 
-pub fn receive_offer_accepted(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -> Result<()> {
-    let (offer_id, src_amount_sd, src_buyer_address, dst_buyer_address, _) =
-        decode_offer_accepted(message);
+pub fn receive_offer_canceled(ctx: &mut Context<LzReceive>, message: &Vec<u8>) -> Result<()> {
+    let (offer_id, _, _) = decode_offer_canceled(message);
 
-    let offer = &mut ctx.accounts.offer;
+    let escrow = ctx.accounts.escrow.as_deref().expect(OtcConfig::ERROR_MSG);
+    let src_token_mint = ctx.accounts.src_token_mint.as_deref();
 
-    // update state
-    offer.src_amount_sd -= src_amount_sd;
+    let amount_ld: u64;
+    {
+        let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(src_token_mint);
+        amount_ld = OtcConfig::sd2ld(ctx.accounts.offer.src_amount_sd, decimal_conversion_rate);
+    }
+
+    // send src tokens to the seller
+    OtcConfig::transfer(
+        escrow.as_ref(),
+        amount_ld,
+        ctx.accounts.src_actor.as_ref(),
+        ctx.accounts.token_program.as_ref(),
+        ctx.accounts.src_escrow_ata.as_deref(),
+        src_token_mint,
+        ctx.accounts.src_actor_ata.as_deref(),
+        Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
+    )?;
 
     // emit event
-    emit_cpi!(OfferAccepted {
+    emit_cpi!(OfferCanceled {
         offer_id,
-        src_amount_sd,
-        src_buyer_address,
-        dst_buyer_address,
     });
 
-    // transfer src tokens
-    {
-        let src_token_mint = ctx.accounts.src_token_mint.as_deref();
-        let escrow = ctx.accounts.escrow.as_deref().expect(OtcConfig::ERROR_MSG);
-
-        let src_amount_ld: u64;
-        {
-            let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(src_token_mint);
-            src_amount_ld = OtcConfig::sd2ld(src_amount_sd, decimal_conversion_rate);
-        }
-
-        OtcConfig::transfer(
-            escrow.to_account_info().as_ref(),
-            src_amount_ld,
-            ctx.accounts.src_actor.as_ref(),
-            ctx.accounts.token_program.as_ref(),
-            ctx.accounts.src_escrow_ata.as_deref(),
-            src_token_mint,
-            ctx.accounts.src_actor_ata.as_deref(),
-            Some(&[&[Escrow::ESCROW_SEED, &[escrow.bump]]])
-        )?;
-    }
+    // delete offer
+    close(
+        ctx.accounts.offer.to_account_info(),
+        ctx.accounts.src_actor.as_ref().expect(OtcConfig::ERROR_MSG).to_account_info()
+    )?;
 
     Ok(())
 }

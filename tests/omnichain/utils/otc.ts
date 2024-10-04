@@ -26,6 +26,7 @@ import {
 import { hexlify } from "ethers/lib/utils";
 import {
   MessagingFee,
+  messagingFeeBeet,
   quoteAcceptOfferBeet,
   quoteCreateOfferBeet,
 } from "./beet-decoder";
@@ -33,6 +34,7 @@ import { assert } from "chai";
 import { isNativeToken } from "./is-native-token";
 import { V0TransactionTools } from "./v0-transaction-tools";
 import { transferSol } from "../../helpers/helper";
+import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 
 export class Otc {
   program: Program<OtcMarket>;
@@ -222,6 +224,8 @@ export class Otc {
       [seller],
       COMMITMENT,
     );
+
+    console.log("offer created", { signature });
 
     return offer;
   }
@@ -441,6 +445,149 @@ export class Otc {
       this.connection,
       tx,
       [buyer],
+      COMMITMENT,
+    );
+
+    return signature;
+  }
+
+  async quoteCancelOfferOrder(
+    offerId: number[],
+    extraOptions: Buffer,
+  ): Promise<MessagingFee> {
+    const offerAddress = PublicKey.findProgramAddressSync(
+      [Buffer.from(offerId)],
+      this.program.programId,
+    )[0];
+    const offerAccount = await this.program.account.offer.fetch(offerAddress);
+
+    const srcEid = offerAccount.srcEid;
+    const dstEid = offerAccount.dstEid;
+    const seller = new PublicKey(offerAccount.srcSellerAddress);
+    const otcConfig = this.deriver.config();
+
+    const [peer, enforcedOptions, remainingAccounts] = [
+      this.deriver.peer(dstEid),
+      this.deriver.enforcedOptions(dstEid),
+      await this.endpoint.getQuoteIXAccountMetaForCPI(
+        this.connection,
+        seller,
+        {
+          dstEid,
+          srcEid,
+          sender: hexlify(otcConfig.toBytes()),
+          receiver: PEER,
+        },
+        new UlnProgram.Uln(
+          (
+            await this.endpoint.getSendLibrary(
+              this.connection,
+              otcConfig,
+              dstEid,
+            )
+          ).programId,
+        ),
+      ),
+    ];
+
+    const srcSellerAddress = Array.from(addressToBytes32(seller.toBase58()));
+
+    const ix = await this.program.methods
+      .quoteCancelOfferOrder(srcSellerAddress, offerId, extraOptions, false)
+      .accounts({
+        otcConfig,
+        offer: offerAddress,
+        peer,
+        enforcedOptions,
+      })
+      .remainingAccounts(remainingAccounts)
+      .instruction();
+
+    const response = await simulateTransaction(
+      this.connection,
+      [ix],
+      this.program.programId,
+      seller,
+      COMMITMENT,
+    );
+
+    return messagingFeeBeet.read(response, 0);
+  }
+
+  async cancelOfferOrder(
+    offerId: number[],
+    extraOptions: Buffer,
+    seller: Keypair,
+    fee: MessagingFee,
+  ): Promise<string> {
+    const offerAddress = PublicKey.findProgramAddressSync(
+      [Buffer.from(offerId)],
+      this.program.programId,
+    )[0];
+    const offerAccount = await this.program.account.offer.fetch(offerAddress);
+
+    const srcEid = offerAccount.srcEid;
+    const dstEid = offerAccount.dstEid;
+    const otcConfig = this.deriver.config();
+
+    const [peer, enforcedOptions, remainingAccounts] = [
+      this.deriver.peer(dstEid),
+      this.deriver.enforcedOptions(dstEid),
+      await this.endpoint.getSendIXAccountMetaForCPI(
+        this.connection,
+        seller.publicKey,
+        {
+          dstEid,
+          srcEid,
+          sender: hexlify(otcConfig.toBytes()),
+          receiver: PEER,
+        },
+        new UlnProgram.Uln(
+          (
+            await this.endpoint.getSendLibrary(
+              this.connection,
+              otcConfig,
+              dstEid,
+            )
+          ).programId,
+        ),
+      ),
+    ];
+
+    const cancelIx = await this.program.methods
+      .cancelOffer(offerId, fee, extraOptions)
+      .accounts({
+        seller: seller.publicKey,
+        otcConfig,
+        offer: offerAddress,
+        escrow: this.deriver.escrow(),
+        // src token spl
+        srcSellerAta: null,
+        srcEscrowAta: null,
+        srcTokenMint: null,
+        // crosschain
+        peer,
+        enforcedOptions,
+      })
+      .remainingAccounts(remainingAccounts)
+      .instruction();
+
+    const setComputeLimitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 1000000,
+    });
+
+    const tx = await V0TransactionTools.createV0Transaction(
+      this.connection,
+      seller.publicKey,
+      [setComputeLimitIx, cancelIx],
+      undefined,
+      COMMITMENT,
+    );
+
+    const signature = await V0TransactionTools.sendAndConfirmV0Transaction(
+      this.connection,
+      tx,
+      [seller],
       COMMITMENT,
     );
 
