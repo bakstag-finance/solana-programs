@@ -127,7 +127,7 @@ impl CancelOffer<'_> {
                 .as_ref()
                 .expect(OtcConfig::ERROR_MSG);
 
-            let payload = build_cancel_offer_payload(&offer_id);
+            let payload = build_cancel_offer_order_payload(&offer_id);
 
             receipt = oapp::endpoint_cpi::send(
                 ctx.accounts.otc_config.endpoint_program,
