@@ -14,7 +14,7 @@ export async function createMintAndAta(
   connection: Connection,
   payer: Signer,
   owner: PublicKey,
-  decimals: number
+  decimals: number,
 ): Promise<Token> {
   const mint = await createMint(connection, payer, owner, null, decimals);
 
@@ -38,7 +38,7 @@ export async function createMintAndAta(
 
 export async function getBalance(
   connection: Connection,
-  tokenAccount: PublicKey
+  tokenAccount: PublicKey,
 ): Promise<Number> {
   const info = await getAccount(connection, tokenAccount);
 

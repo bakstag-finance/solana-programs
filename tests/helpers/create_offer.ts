@@ -31,7 +31,7 @@ export async function getOfferAccount(
   dstEid: number,
   srcTokenAddress: number[],
   dstTokenAddress: number[],
-  exchangeRateSd: BN
+  exchangeRateSd: BN,
 ): Promise<OfferInfo> {
   const offerId: Uint8Array = await program.methods
     .hashOffer(
@@ -40,13 +40,13 @@ export async function getOfferAccount(
       dstEid,
       srcTokenAddress,
       dstTokenAddress,
-      exchangeRateSd
+      exchangeRateSd,
     )
     .view();
 
   const [offer, __] = PublicKey.findProgramAddressSync(
     [offerId],
-    program.programId
+    program.programId,
   );
 
   return {
@@ -59,7 +59,7 @@ export async function createSplOffer(
   program: Program<OtcMarket>,
   connection: Connection,
   payer: Keypair,
-  accounts: Accounts
+  accounts: Accounts,
 ): Promise<OfferInfo> {
   return await createOffer(program, connection, payer, accounts, {
     srcSellerAddress: Array.from(accounts.srcSeller.publicKey.toBytes()),
@@ -87,7 +87,7 @@ export async function createOffer(
     | "srcEscrowAta"
     | "dstSeller"
   >,
-  offer: Offer
+  offer: Offer,
 ): Promise<OfferInfo> {
   // TODO: fix
   const isNative =
@@ -99,7 +99,7 @@ export async function createOffer(
       connection,
       payer,
       accounts.srcSeller.publicKey,
-      offer.srcAmountLd.toNumber()
+      offer.srcAmountLd.toNumber(),
     );
   } else {
     // spl
@@ -109,7 +109,7 @@ export async function createOffer(
       accounts.srcToken,
       accounts.srcSellerAta,
       payer.publicKey,
-      offer.srcAmountLd.toNumber()
+      offer.srcAmountLd.toNumber(),
     );
   }
 
@@ -120,7 +120,7 @@ export async function createOffer(
     offer.dstEid,
     offer.srcTokenAddress,
     offer.dstTokenAddress,
-    offer.exchangeRateSd
+    offer.exchangeRateSd,
   );
 
   await program.methods
@@ -150,7 +150,7 @@ export async function createNativeOffer(
   program: Program<OtcMarket>,
   connection: Connection,
   payer: Keypair,
-  accounts: Accounts
+  accounts: Accounts,
 ): Promise<OfferInfo> {
   return await createOffer(program, connection, payer, accounts, {
     srcSellerAddress: Array.from(accounts.srcSeller.publicKey.toBytes()),

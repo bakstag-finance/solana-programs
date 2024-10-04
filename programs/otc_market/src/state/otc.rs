@@ -1,12 +1,8 @@
 use crate::*;
 use anchor_spl::token_interface::{
-    transfer_checked,
-    Mint,
-    TokenAccount,
-    TokenInterface,
-    TransferChecked,
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
-use oapp::endpoint::{ instructions::RegisterOAppParams, ID as ENDPOINT_ID };
+use oapp::endpoint::{instructions::RegisterOAppParams, ID as ENDPOINT_ID};
 
 #[account]
 #[derive(InitSpace)]
@@ -32,7 +28,7 @@ impl OtcConfig {
         endpoint_program: Option<Pubkey>,
         admin: Pubkey,
         accounts: &[AccountInfo],
-        oapp_signer: Pubkey
+        oapp_signer: Pubkey,
     ) -> Result<()> {
         self.admin = admin;
         self.endpoint_program = if let Some(endpoint_program) = endpoint_program {
@@ -41,17 +37,15 @@ impl OtcConfig {
             ENDPOINT_ID
         };
 
-        //self.eid = 40168;
-
         // register oapp
         oapp::endpoint_cpi::register_oapp(
             self.endpoint_program,
             oapp_signer,
             accounts,
-            &[Self::OTC_SEED, &admin.as_ref(), &[self.bump]],
+            &[Self::OTC_SEED, &[self.bump]],
             RegisterOAppParams {
                 delegate: self.admin,
-            }
+            },
         )
     }
 
@@ -71,7 +65,11 @@ impl OtcConfig {
     }
 
     pub fn get_token_address(token_mint: Option<&InterfaceAccount<Mint>>) -> [u8; 32] {
-        if let Some(mint) = token_mint { mint.key().to_bytes() } else { <[u8; 32]>::default() }
+        if let Some(mint) = token_mint {
+            mint.key().to_bytes()
+        } else {
+            <[u8; 32]>::default()
+        }
     }
 
     pub fn get_decimal_conversion_rate(token_mint: Option<&InterfaceAccount<Mint>>) -> u64 {
@@ -85,13 +83,12 @@ impl OtcConfig {
     pub fn to_dst_amount(
         src_amount_sd: u64,
         exchange_rate_sd: u64,
-        dst_token_mint: Option<&InterfaceAccount<Mint>>
+        dst_token_mint: Option<&InterfaceAccount<Mint>>,
     ) -> AcceptOfferReceipt {
         let dst_decimal_conversion_rate = Self::get_decimal_conversion_rate(dst_token_mint);
 
-        let dst_amount_ld =
-            (src_amount_sd * exchange_rate_sd * dst_decimal_conversion_rate) /
-            (10u64).pow(Self::SHARED_DECIMALS as u32); // TODO: check for overflow
+        let dst_amount_ld = (src_amount_sd * exchange_rate_sd * dst_decimal_conversion_rate)
+            / (10u64).pow(Self::SHARED_DECIMALS as u32); // TODO: check for overflow
 
         let fee_ld = dst_amount_ld / (Self::FEE as u64);
 
@@ -115,7 +112,7 @@ impl OtcConfig {
         to_ata: Option<&InterfaceAccount<'info, TokenAccount>>,
 
         // signed
-        seeds: Option<&[&[&[u8]]]>
+        seeds: Option<&[&[&[u8]]]>,
     ) -> Result<()> {
         let is_native = token_mint.is_none(); // decide if native
 
@@ -132,9 +129,9 @@ impl OtcConfig {
                     &solana_program::system_instruction::transfer(
                         &from.key(),
                         &to_sol.key(),
-                        amount
+                        amount,
                     ),
-                    &[from.to_account_info(), to_sol.to_account_info()]
+                    &[from.to_account_info(), to_sol.to_account_info()],
                 )?;
             }
 
@@ -151,10 +148,11 @@ impl OtcConfig {
                         mint: token_mint.to_account_info(),
                         to: to_ata.expect(Self::ERROR_MSG).to_account_info(),
                         authority: from.to_account_info(),
-                    }
-                ).with_signer(seeds.unwrap_or_default()),
+                    },
+                )
+                .with_signer(seeds.unwrap_or_default()),
                 amount,
-                token_mint.decimals
+                token_mint.decimals,
             )?;
 
             Ok(())

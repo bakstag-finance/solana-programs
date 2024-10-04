@@ -1,10 +1,18 @@
 use crate::*;
 
 #[derive(Accounts)]
-#[instruction(params: InitializeParams)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + LzReceiveTypesAccounts::INIT_SPACE,
+        seeds = [oapp::LZ_RECEIVE_TYPES_SEED, otc_config.key().as_ref()],
+        bump
+    )]
+    pub lz_receive_types_accounts: Account<'info, LzReceiveTypesAccounts>,
 
     #[account(
         init,
@@ -34,15 +42,16 @@ impl Initialize<'_> {
 
         ctx.accounts.escrow.bump = ctx.bumps.escrow;
 
-        Ok(())
+        ctx.accounts.lz_receive_types_accounts.otc_config = ctx.accounts.otc_config.key();
 
-        // let oapp_signer = ctx.accounts.otc_config.key();
-        // ctx.accounts.otc_config.init(
-        //     params.endpoint_program,
-        //     ctx.accounts.payer.key(),
-        //     ctx.remaining_accounts,
-        //     oapp_signer,
-        // )
+        let oapp_signer = ctx.accounts.otc_config.key();
+
+        ctx.accounts.otc_config.init(
+            params.endpoint_program,
+            ctx.accounts.payer.key(),
+            ctx.remaining_accounts,
+            oapp_signer,
+        )
     }
 }
 

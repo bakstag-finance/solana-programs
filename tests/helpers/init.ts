@@ -9,7 +9,7 @@ export async function initOtc(
   config: PublicKey,
   escrow: PublicKey,
   treasury: PublicKey,
-  payer: Keypair
+  payer: Keypair,
 ) {
   await program.methods
     .initialize({

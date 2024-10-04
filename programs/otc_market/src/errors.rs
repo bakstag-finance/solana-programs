@@ -2,6 +2,7 @@ use anchor_lang::prelude::error_code;
 
 #[error_code]
 pub enum OtcError {
+    Unauthorized,
     InvalidLocalDecimals,
     InvalidPricing,
     ExcessiveAmount,
@@ -11,4 +12,9 @@ pub enum OtcError {
     InvalidDstSeller,
     InvalidTreasury,
     OnlySeller,
+    InvalidSender,
+    InvalidMessageType,
+    InvalidSrcBuyer,
+    InvalidSrcSeller,
+    NotCrosschainOffer,
 }

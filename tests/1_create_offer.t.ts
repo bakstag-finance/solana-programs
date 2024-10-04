@@ -52,7 +52,7 @@ describe("CreateOffer", () => {
     accounts = await generateAccounts(
       connection,
       program.programId,
-      wallet.payer
+      wallet.payer,
     );
 
     // already inited in init test...
@@ -69,7 +69,7 @@ describe("CreateOffer", () => {
     assert(
       (await connection.getBalance(accounts.dstBuyer.publicKey)) ==
         TOP_UP_AMOUNT,
-      "Top up failed"
+      "Top up failed",
     );
 
     srcSellerAddress = Array.from(accounts.srcSeller.publicKey.toBytes());
@@ -89,7 +89,7 @@ describe("CreateOffer", () => {
       createOfferParams.dstEid,
       Array.from(accounts.srcToken.toBytes()),
       createOfferParams.dstTokenAddress,
-      createOfferParams.exchangeRateSd
+      createOfferParams.exchangeRateSd,
     ));
   });
 
@@ -98,7 +98,7 @@ describe("CreateOffer", () => {
       connection,
       wallet.payer,
       accounts.srcSeller.publicKey,
-      4
+      4,
     );
 
     try {
@@ -114,7 +114,7 @@ describe("CreateOffer", () => {
       assert(false, "should revert");
     } catch (error: any) {
       expect(error.simulationResponse.logs).to.include(
-        "Program log: AnchorError caused by account: src_token_mint. Error Code: InvalidLocalDecimals. Error Number: 6000. Error Message: InvalidLocalDecimals."
+        "Program log: AnchorError caused by account: src_token_mint. Error Code: InvalidLocalDecimals. Error Number: 6000. Error Message: InvalidLocalDecimals.",
       );
     }
   });
@@ -127,13 +127,13 @@ describe("CreateOffer", () => {
         DST_EID,
         Array.from(accounts.srcToken.toBytes()),
         Array.from(accounts.dstToken.toBytes()),
-        new anchor.BN(EXCHANGE_RATE_SD)
+        new anchor.BN(EXCHANGE_RATE_SD),
       )
       .view();
 
     const [fakeOffer, __] = PublicKey.findProgramAddressSync(
       [fakeOfferId],
-      program.programId
+      program.programId,
     );
 
     //    const escrowAta = getAssociatedTokenAddressSync(srcTokenMint, escrow, true);
@@ -157,7 +157,7 @@ describe("CreateOffer", () => {
     } catch (error: any) {
       expect(error).to.be.instanceOf(AnchorError);
       expect((error as AnchorError).error.errorCode.code).to.equal(
-        "ConstraintSeeds"
+        "ConstraintSeeds",
       );
 
       // expect(error.toString()).to.include(
@@ -171,7 +171,7 @@ describe("CreateOffer", () => {
       const fakeTokenEscrow = getAssociatedTokenAddressSync(
         accounts.srcToken,
         accounts.srcSeller.publicKey,
-        true
+        true,
       );
 
       await program.methods
@@ -192,7 +192,7 @@ describe("CreateOffer", () => {
     } catch (error: any) {
       expect(error).to.be.instanceOf(AnchorError);
       expect((error as AnchorError).error.errorCode.code).to.equal(
-        "ConstraintTokenOwner"
+        "ConstraintTokenOwner",
       );
     }
 
@@ -215,7 +215,7 @@ describe("CreateOffer", () => {
     } catch (error: any) {
       expect(error).to.be.instanceOf(AnchorError);
       expect((error as AnchorError).error.errorCode.code).to.equal(
-        "ConstraintTokenMint"
+        "ConstraintTokenMint",
       );
     }
   });
@@ -223,7 +223,7 @@ describe("CreateOffer", () => {
   it("should revert on invalid otc config", async () => {
     const [otcConfig, _] = PublicKey.findProgramAddressSync(
       [Buffer.from("FakeOtc")],
-      program.programId
+      program.programId,
     );
 
     try {
@@ -239,7 +239,7 @@ describe("CreateOffer", () => {
       assert(false, "should revert");
     } catch (error: any) {
       expect(error.simulationResponse.logs).to.include(
-        "Program log: AnchorError caused by account: otc_config. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized."
+        "Program log: AnchorError caused by account: otc_config. Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized.",
       );
     }
   });
@@ -249,7 +249,7 @@ describe("CreateOffer", () => {
       getAssociatedTokenAddressSync(
         accounts.srcToken,
         accounts.dstSeller.publicKey,
-        true
+        true,
       ),
       accounts.dstSellerAta,
     ];
@@ -275,53 +275,57 @@ describe("CreateOffer", () => {
       } catch (error: any) {
         expect(error).to.be.instanceOf(AnchorError);
         expect((error as AnchorError).error.errorCode.code).to.equal(
-          errorCodes[index]
+          errorCodes[index],
         );
       }
     }
   });
 
   it("should create offer Spl", async () => {
-    const { account: offerAccount, id: offerId } =
-      await createSplOffer(program, connection, wallet.payer, accounts);
+    const { account: offerAccount, id: offerId } = await createSplOffer(
+      program,
+      connection,
+      wallet.payer,
+      accounts,
+    );
 
     const createdOffer = await program.account.offer.fetch(offerAccount);
 
     assert(
       createdOffer.srcSellerAddress.toString() == srcSellerAddress.toString(),
-      "srcSellerAddress"
+      "srcSellerAddress",
     );
     assert(
       createdOffer.dstSellerAddress.toString() ==
         Array.from(accounts.dstSeller.publicKey.toBytes()).toString(),
-      "dstSellerAddress"
+      "dstSellerAddress",
     );
     assert(createdOffer.srcEid == Number(SRC_EID), "srcEid");
     assert(createdOffer.dstEid == Number(DST_EID), "dstEid");
     assert(
       createdOffer.srcTokenAddress.toString() ==
         Array.from(accounts.srcToken.toBytes()).toString(),
-      "srcTokenAddress"
+      "srcTokenAddress",
     );
     assert(
       createdOffer.dstTokenAddress.toString() ==
         Array.from(accounts.dstToken.toBytes()).toString(),
-      "dstTokenAddress"
+      "dstTokenAddress",
     );
     assert(
       createdOffer.srcAmountSd.toNumber() ==
         Number(CREATE_OFFER_AMOUNTS.srcAmountSd),
-      "srcAmountSD"
+      "srcAmountSD",
     );
     assert(
       createdOffer.exchangeRateSd.toNumber() == Number(EXCHANGE_RATE_SD),
-      "exchangeRate"
+      "exchangeRate",
     );
 
     const escrowBalance = await getBalance(connection, accounts.srcEscrowAta);
     assert(
       escrowBalance == Number(CREATE_OFFER_AMOUNTS.srcAmountLdSpl),
-      "escrow balance"
+      "escrow balance",
     );
   });
 
@@ -332,40 +336,40 @@ describe("CreateOffer", () => {
       program,
       connection,
       wallet.payer,
-      accounts
+      accounts,
     );
 
     const createdOffer = await program.account.offer.fetch(offer);
 
     assert(
       createdOffer.srcSellerAddress.toString() == srcSellerAddress.toString(),
-      "srcSellerAddress"
+      "srcSellerAddress",
     );
     assert(
       createdOffer.dstSellerAddress.toString() ==
         Array.from(accounts.dstSeller.publicKey.toBytes()).toString(),
-      "dstSellerAddress"
+      "dstSellerAddress",
     );
     assert(createdOffer.srcEid == Number(SRC_EID), "srcEid");
     assert(createdOffer.dstEid == Number(DST_EID), "dstEid");
     assert(
       createdOffer.srcTokenAddress.toString() ==
         Array.from(PublicKey.default.toBytes()).toString(),
-      "srcTokenAddress"
+      "srcTokenAddress",
     );
     assert(
       createdOffer.dstTokenAddress.toString() ==
         Array.from(PublicKey.default.toBytes()).toString(),
-      "dstTokenAddress"
+      "dstTokenAddress",
     );
     assert(
       createdOffer.srcAmountSd.toNumber() ==
         Number(CREATE_OFFER_AMOUNTS.srcAmountSd),
-      "srcAmountSD"
+      "srcAmountSD",
     );
     assert(
       createdOffer.exchangeRateSd.toNumber() == Number(EXCHANGE_RATE_SD),
-      "exchangeRate"
+      "exchangeRate",
     );
 
     const escrowBalance = await connection.getBalance(accounts.escrow);
@@ -374,7 +378,7 @@ describe("CreateOffer", () => {
     assert(
       escrowBalance - initialEscrowBalance ==
         Number(CREATE_OFFER_AMOUNTS.srcAmountLdNative),
-      "escrow balance"
+      "escrow balance",
     );
   });
 });

@@ -31,7 +31,11 @@ import {
   SRC_EID,
   TOP_UP_AMOUNT,
 } from "./helpers/constants";
-import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import {
+  createMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+} from "@solana/spl-token";
 
 describe("AcceptOffer", () => {
   const provider = anchor.AnchorProvider.env();
@@ -55,15 +59,15 @@ describe("AcceptOffer", () => {
     accounts = await generateAccounts(
       connection,
       program.programId,
-      wallet.payer
+      wallet.payer,
     );
 
     await topUp(accounts, connection, wallet.payer);
 
     assert(
       (await connection.getBalance(accounts.dstBuyer.publicKey)) ==
-      TOP_UP_AMOUNT,
-      "Top up failed"
+        TOP_UP_AMOUNT,
+      "Top up failed",
     );
     srcSellerAddress = Array.from(wallet.publicKey.toBytes());
 
@@ -76,7 +80,7 @@ describe("AcceptOffer", () => {
       program,
       connection,
       wallet.payer,
-      accounts
+      accounts,
     );
     splOfferId = Array.from(_splOfferId);
     splOffer = _splOffer;
@@ -103,7 +107,7 @@ describe("AcceptOffer", () => {
       await program.methods
         .quoteAcceptOffer(
           Array.from(accounts.dstBuyer.publicKey.toBytes()),
-          params
+          params,
         )
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -115,7 +119,7 @@ describe("AcceptOffer", () => {
       assert(false, "should revert");
     } catch (error: any) {
       expect(error.simulationResponse.logs[1]).to.be.equal(
-        "Program log: Instruction: QuoteAcceptOffer"
+        "Program log: Instruction: QuoteAcceptOffer",
       );
     }
   });
@@ -125,7 +129,7 @@ describe("AcceptOffer", () => {
       connection,
       wallet.payer,
       accounts.srcSeller.publicKey,
-      4
+      4,
     );
     const offerInfo = await createOffer(
       program,
@@ -141,7 +145,7 @@ describe("AcceptOffer", () => {
         dstTokenAddress: Array.from(dstToken.toBytes()),
         srcAmountLd: new anchor.BN(CREATE_OFFER_AMOUNTS.srcAmountLdSpl),
         exchangeRateSd: new anchor.BN(EXCHANGE_RATE_SD),
-      }
+      },
     );
     const params: AcceptOfferParams = {
       offerId: Array.from(offerInfo.id),
@@ -152,7 +156,7 @@ describe("AcceptOffer", () => {
       await program.methods
         .quoteAcceptOffer(
           Array.from(accounts.dstBuyer.publicKey.toBytes()),
-          params
+          params,
         )
         .accounts({
           otcConfig: accounts.otcConfig,
@@ -164,15 +168,13 @@ describe("AcceptOffer", () => {
       assert(false, "should revert");
     } catch (error: any) {
       expect(error.simulationResponse.logs).to.include(
-        "Program log: AnchorError caused by account: dst_token_mint. Error Code: InvalidLocalDecimals. Error Number: 6000. Error Message: InvalidLocalDecimals."
+        "Program log: AnchorError caused by account: dst_token_mint. Error Code: InvalidLocalDecimals. Error Number: 6000. Error Message: InvalidLocalDecimals.",
       );
     }
   });
 
   it("should revert on InvalidDstSeller", async () => {
-    const invalidDstSellers: PublicKey[] = [
-      Keypair.generate().publicKey,
-    ];
+    const invalidDstSellers: PublicKey[] = [Keypair.generate().publicKey];
 
     for (const invalidDstSeller of invalidDstSellers) {
       try {
@@ -194,23 +196,21 @@ describe("AcceptOffer", () => {
             srcEscrowAta: null,
             srcTokenMint: null,
           })
-        .signers([accounts.dstBuyer])
-        .rpc();
+          .signers([accounts.dstBuyer])
+          .rpc();
 
         assert(false, "should revert");
       } catch (error: any) {
         expect(error).to.be.instanceOf(AnchorError);
         expect((error as AnchorError).error.errorCode.code).to.equal(
-          "InvalidDstSeller"
+          "InvalidDstSeller",
         );
       }
     }
   });
 
   it("should revert on InvalidOffer", async () => {
-    const invalidOffers: PublicKey[] = [
-      splOffer,
-    ];
+    const invalidOffers: PublicKey[] = [splOffer];
 
     for (const invalidOffer of invalidOffers) {
       try {
@@ -232,23 +232,21 @@ describe("AcceptOffer", () => {
             srcEscrowAta: null,
             srcTokenMint: null,
           })
-        .signers([accounts.dstBuyer])
-        .rpc();
+          .signers([accounts.dstBuyer])
+          .rpc();
 
         assert(false, "should revert");
       } catch (error: any) {
         expect(error).to.be.instanceOf(AnchorError);
         expect((error as AnchorError).error.errorCode.code).to.equal(
-          "ConstraintSeeds"
+          "ConstraintSeeds",
         );
       }
     }
   });
 
   it("should revert on InvalidTreasury", async () => {
-    const invalidTreasuries : PublicKey[] = [
-      Keypair.generate().publicKey,
-    ];
+    const invalidTreasuries: PublicKey[] = [Keypair.generate().publicKey];
 
     for (const invalidTreasury of invalidTreasuries) {
       try {
@@ -270,40 +268,46 @@ describe("AcceptOffer", () => {
             srcEscrowAta: null,
             srcTokenMint: null,
           })
-        .signers([accounts.dstBuyer])
-        .rpc();
+          .signers([accounts.dstBuyer])
+          .rpc();
 
         assert(false, "should revert");
       } catch (error: any) {
         expect(error).to.be.instanceOf(AnchorError);
         expect((error as AnchorError).error.errorCode.code).to.equal(
-          "InvalidTreasury"
+          "InvalidTreasury",
         );
       }
     }
   });
 
   it("should revert on InvalidDstTokenMint", async () => {
-    const invalidDstToken = await createMint(connection, wallet.payer, accounts.dstSeller.publicKey, null, 6);
+    const invalidDstToken = await createMint(
+      connection,
+      wallet.payer,
+      accounts.dstSeller.publicKey,
+      null,
+      6,
+    );
 
     const invalidDstAtas = await Promise.all([
       getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
         invalidDstToken,
-        accounts.dstBuyer.publicKey
+        accounts.dstBuyer.publicKey,
       ),
       getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
         invalidDstToken,
-        accounts.dstSeller.publicKey
+        accounts.dstSeller.publicKey,
       ),
       getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
         invalidDstToken,
-        accounts.treasury
+        accounts.treasury,
       ),
     ]);
 
@@ -333,27 +337,33 @@ describe("AcceptOffer", () => {
     } catch (error: any) {
       expect(error).to.be.instanceOf(AnchorError);
       expect((error as AnchorError).error.errorCode.code).to.equal(
-        "InvalidDstTokenMint"
+        "InvalidDstTokenMint",
       );
     }
   });
 
   it("should revert on InvalidSrcTokenMint", async () => {
-    const invalidSrcToken = await createMint(connection, wallet.payer, wallet.publicKey, null, 6);
+    const invalidSrcToken = await createMint(
+      connection,
+      wallet.payer,
+      wallet.publicKey,
+      null,
+      6,
+    );
 
     const invalidSrcAtas = await Promise.all([
       getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
         invalidSrcToken,
-        accounts.dstBuyer.publicKey
+        accounts.dstBuyer.publicKey,
       ),
       getOrCreateAssociatedTokenAccount(
         connection,
         wallet.payer,
         invalidSrcToken,
         accounts.escrow,
-        true
+        true,
       ),
     ]);
 
@@ -382,7 +392,7 @@ describe("AcceptOffer", () => {
     } catch (error: any) {
       expect(error).to.be.instanceOf(AnchorError);
       expect((error as AnchorError).error.errorCode.code).to.equal(
-        "InvalidSrcTokenMint"
+        "InvalidSrcTokenMint",
       );
     }
   });
@@ -394,29 +404,29 @@ describe("AcceptOffer", () => {
       accounts.dstToken,
       accounts.dstBuyerAta,
       wallet.payer.publicKey,
-      ACCEPT_OFFER_AMOUNTS.dstAmountLdSpl
+      ACCEPT_OFFER_AMOUNTS.dstAmountLdSpl,
     );
 
     const initialEscrowSrcBalance = await getBalance(
       connection,
-      accounts.srcEscrowAta
+      accounts.srcEscrowAta,
     );
     const initialBuyerDstBalance = await getBalance(
       connection,
-      accounts.dstBuyerAta
+      accounts.dstBuyerAta,
     );
     const initialTreasuryDstBalance = await getBalance(
       connection,
-      accounts.dstTreasuryAta
+      accounts.dstTreasuryAta,
     );
 
     const initialSellerDstBalance = await getBalance(
       connection,
-      accounts.dstSellerAta
+      accounts.dstSellerAta,
     );
     const initialBuyerSrcBalance = await getBalance(
       connection,
-      accounts.srcBuyerAta
+      accounts.srcBuyerAta,
     );
 
     await program.methods
@@ -441,17 +451,17 @@ describe("AcceptOffer", () => {
 
     const escrowSrcBalance = await getBalance(
       connection,
-      accounts.srcEscrowAta
+      accounts.srcEscrowAta,
     );
 
     const buyerDstBalance = await getBalance(connection, accounts.dstBuyerAta);
     const sellerDstBalance = await getBalance(
       connection,
-      accounts.dstSellerAta
+      accounts.dstSellerAta,
     );
     const treasuryDstBalance = await getBalance(
       connection,
-      accounts.dstTreasuryAta
+      accounts.dstTreasuryAta,
     );
     const buyerSrcBalance = await getBalance(connection, accounts.srcBuyerAta);
 
@@ -461,14 +471,14 @@ describe("AcceptOffer", () => {
     assert(
       Number(acceptedOffer.srcAmountSd) ==
         CREATE_OFFER_AMOUNTS.srcAmountSd - ACCEPT_OFFER_AMOUNTS.srcAmountSd,
-      "remaining src amount"
+      "remaining src amount",
     );
 
     // balances check
     assert(
       initialEscrowSrcBalance.valueOf() - escrowSrcBalance.valueOf() ==
         ACCEPT_OFFER_AMOUNTS.srcAmountLdSpl,
-      "escrow balance"
+      "escrow balance",
     );
 
     // console.log(buyerSrcBalance - initialBuyerSrcBalance);
@@ -476,26 +486,26 @@ describe("AcceptOffer", () => {
     assert(
       buyerSrcBalance.valueOf() - initialBuyerSrcBalance.valueOf() ==
         ACCEPT_OFFER_AMOUNTS.srcAmountLdSpl,
-      "src buyer balance"
+      "src buyer balance",
     );
 
     assert(
       initialBuyerDstBalance.valueOf() - buyerDstBalance.valueOf() ==
         ACCEPT_OFFER_AMOUNTS.dstAmountLdSpl,
-      "dst buyer balance"
+      "dst buyer balance",
     );
 
     assert(
       treasuryDstBalance.valueOf() - initialTreasuryDstBalance.valueOf() ==
         ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdSpl,
-      "treasuty balance"
+      "treasuty balance",
     );
 
     assert(
       sellerDstBalance.valueOf() - initialSellerDstBalance.valueOf() ==
         ACCEPT_OFFER_AMOUNTS.dstAmountLdSpl -
           ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdSpl,
-      "seller dst balance"
+      "seller dst balance",
     );
   });
 
@@ -504,22 +514,22 @@ describe("AcceptOffer", () => {
       connection,
       wallet.payer,
       accounts.dstBuyer.publicKey,
-      ACCEPT_OFFER_AMOUNTS.dstAmountLdNative
+      ACCEPT_OFFER_AMOUNTS.dstAmountLdNative,
     );
 
     const initialEscrowSrcBalance = await connection.getBalance(
-      accounts.escrow
+      accounts.escrow,
     );
 
     const initialBuyerDstBalance = await connection.getBalance(
-      accounts.dstBuyer.publicKey
+      accounts.dstBuyer.publicKey,
     );
     const initialTreasuryDstBalance = await connection.getBalance(
-      accounts.treasury
+      accounts.treasury,
     );
 
     const initialSellerDstBalance = await connection.getBalance(
-      accounts.dstSeller.publicKey
+      accounts.dstSeller.publicKey,
     );
 
     await program.methods
@@ -545,10 +555,10 @@ describe("AcceptOffer", () => {
     const escrowSrcBalance = await connection.getBalance(accounts.escrow);
 
     const buyerDstBalance = await connection.getBalance(
-      accounts.dstBuyer.publicKey
+      accounts.dstBuyer.publicKey,
     );
     const sellerDstBalance = await connection.getBalance(
-      accounts.dstSeller.publicKey
+      accounts.dstSeller.publicKey,
     );
     const treasuryDstBalance = await connection.getBalance(accounts.treasury);
 
@@ -558,7 +568,7 @@ describe("AcceptOffer", () => {
     assert(
       Number(acceptedOffer.srcAmountSd) ==
         CREATE_OFFER_AMOUNTS.srcAmountSd - ACCEPT_OFFER_AMOUNTS.srcAmountSd,
-      "remaining src amount"
+      "remaining src amount",
     );
 
     // balances check
@@ -566,17 +576,17 @@ describe("AcceptOffer", () => {
     assert(
       initialEscrowSrcBalance - escrowSrcBalance ==
         ACCEPT_OFFER_AMOUNTS.srcAmountLdNative,
-      "escrow balance"
+      "escrow balance",
     );
     assert(
       treasuryDstBalance - initialTreasuryDstBalance ==
-        ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdNative
+        ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdNative,
     );
 
     assert(
       sellerDstBalance - initialSellerDstBalance ==
         ACCEPT_OFFER_AMOUNTS.dstAmountLdNative -
-          ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdNative
+          ACCEPT_OFFER_AMOUNTS.dstFeeAmountLdNative,
     );
   });
 });

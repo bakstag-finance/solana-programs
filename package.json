@@ -1,11 +1,22 @@
 {
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "build": "yarn && anchor build && anchor keys sync",
+    "rebuild": "rm -rf target node_modules && yarn build",
+    "retest": "cd target && rm -rf deploy && cd .. && yarn build && anchor test",
+    "close": "chmod +x close_programs.sh && ./close_programs.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@solana/spl-token": "^0.4.8"
+    "@layerzerolabs/lz-definitions": "^2.3.41",
+    "@layerzerolabs/lz-solana-sdk-v2": "^2.3.40",
+    "@layerzerolabs/lz-v2-utilities": "^2.3.40",
+    "@layerzerolabs/toolbox-hardhat": "^0.3.7",
+    "@metaplex-foundation/beet": "^0.7.2",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.3",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

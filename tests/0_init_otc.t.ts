@@ -23,7 +23,7 @@ describe("Initialization", () => {
     const { otcConfig, escrow, treasury } = await generateAccounts(
       connection,
       program.programId,
-      wallet.payer
+      wallet.payer,
     );
     await initOtc(program, otcConfig, escrow, treasury, wallet.payer);
   });

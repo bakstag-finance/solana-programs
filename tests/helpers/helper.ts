@@ -12,7 +12,12 @@ import {
   sendAndConfirmTransaction,
   Connection,
 } from "@solana/web3.js";
-import { LD_SPL, TOP_UP_AMOUNT, TREASURY_SECRET_KEY } from "./constants";
+import {
+  ENDPOINT_PROGRAM_ID,
+  LD_SPL,
+  TOP_UP_AMOUNT,
+  TREASURY_SECRET_KEY,
+} from "./constants";
 
 export class Accounts {
   otcConfig: PublicKey;
@@ -32,27 +37,36 @@ export class Accounts {
   srcBuyerAta: PublicKey;
   dstSellerAta: PublicKey;
   dstBuyerAta: PublicKey;
+  endpoint: PublicKey;
+  oappRegistry: PublicKey;
+  eventAuthority: PublicKey;
+  endpointSetting: PublicKey;
 }
 
 export async function generateAccounts(
   connection: Connection,
   programId: PublicKey,
-  payer: Keypair
-): Promise<Accounts> {
+  payer: Keypair,
+): Promise<
+  Omit<
+    Accounts,
+    "endpoint" | "oappRegistry" | "eventAuthority" | "endpointSetting"
+  >
+> {
   const treasury = Keypair.fromSecretKey(TREASURY_SECRET_KEY).publicKey;
   const srcSeller = Keypair.generate();
   const dstSeller = Keypair.generate();
   const srcBuyer = Keypair.generate();
   const dstBuyer = Keypair.generate();
 
-  const [otcConfig, _] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Otc")],
-    programId
+  const [otcConfig, ____] = PublicKey.findProgramAddressSync(
+    [Buffer.from("Otc", "utf8")],
+    programId,
   );
 
   const [escrow, ___] = PublicKey.findProgramAddressSync(
-    [Buffer.from("Escrow")],
-    programId
+    [Buffer.from("Escrow", "utf8")],
+    programId,
   );
 
   const srcToken = await createMint(
@@ -60,14 +74,14 @@ export async function generateAccounts(
     payer,
     payer.publicKey,
     null,
-    LD_SPL
+    LD_SPL,
   );
   const dstToken = await createMint(
     connection,
     payer,
     payer.publicKey,
     null,
-    LD_SPL
+    LD_SPL,
   );
 
   const srcSellerAta = (
@@ -75,7 +89,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      srcSeller.publicKey
+      srcSeller.publicKey,
     )
   ).address;
 
@@ -84,7 +98,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      dstBuyer.publicKey
+      dstBuyer.publicKey,
     )
   ).address;
 
@@ -93,7 +107,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      dstSeller.publicKey
+      dstSeller.publicKey,
     )
   ).address;
 
@@ -102,7 +116,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      dstBuyer.publicKey
+      dstBuyer.publicKey,
     )
   ).address;
 
@@ -112,7 +126,7 @@ export async function generateAccounts(
       payer,
       srcToken,
       escrow,
-      true
+      true,
     )
   ).address;
   const dstEscrowAta = (
@@ -121,7 +135,7 @@ export async function generateAccounts(
       payer,
       dstToken,
       escrow,
-      true
+      true,
     )
   ).address;
   const srcTreasuryAta = (
@@ -129,7 +143,7 @@ export async function generateAccounts(
       connection,
       payer,
       srcToken,
-      treasury
+      treasury,
     )
   ).address;
   const dstTreasuryAta = (
@@ -137,7 +151,7 @@ export async function generateAccounts(
       connection,
       payer,
       dstToken,
-      treasury
+      treasury,
     )
   ).address;
 
@@ -165,25 +179,25 @@ export async function generateAccounts(
 export async function topUp(
   accounts: Accounts,
   connection: Connection,
-  payer: Keypair
+  payer: Keypair,
 ) {
   await transferSol(
     connection,
     payer,
     accounts.srcSeller.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
   await transferSol(
     connection,
     payer,
     accounts.dstSeller.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
   await transferSol(
     connection,
     payer,
     accounts.dstBuyer.publicKey,
-    TOP_UP_AMOUNT
+    TOP_UP_AMOUNT,
   );
 }
 
@@ -191,14 +205,14 @@ export async function transferSol(
   connection: Connection,
   from: Keypair,
   to: PublicKey,
-  lamports: Number
+  lamports: Number,
 ) {
   const transaction = new Transaction().add(
     SystemProgram.transfer({
       fromPubkey: from.publicKey,
       toPubkey: to,
       lamports: BigInt(lamports.valueOf()),
-    })
+    }),
   );
   await sendAndConfirmTransaction(connection, transaction, [from]);
 }

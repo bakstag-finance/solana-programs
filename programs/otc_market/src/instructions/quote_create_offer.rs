@@ -1,8 +1,9 @@
 use crate::*;
 use anchor_spl::token_interface::{ Mint, TokenInterface };
+use oapp::endpoint::{ instructions::QuoteParams as EndpointQuoteParams, MessagingFee };
 
 #[derive(Accounts)]
-#[instruction(src_seller_address: [u8; 32], params: CreateOfferParams)]
+#[instruction(src_seller_address: [u8; 32], params: CreateOfferParams, pay_in_lz_token: bool)]
 pub struct QuoteCreateOffer<'info> {
     #[account(seeds = [OtcConfig::OTC_SEED], bump = otc_config.bump)]
     pub otc_config: Account<'info, OtcConfig>,
@@ -11,10 +12,26 @@ pub struct QuoteCreateOffer<'info> {
         mint::token_program = token_program,         
         constraint = src_token_mint.decimals >= OtcConfig::SHARED_DECIMALS @ OtcError::InvalidLocalDecimals
     )]
+    /// NOTICE: required for src spl offer
     pub src_token_mint: Option<InterfaceAccount<'info, Mint>>,
 
-    #[account(seeds = [Escrow::ESCROW_SEED], bump)]
-    pub escrow: Option<Account<'info, Escrow>>,
+    #[account(
+        seeds = [Peer::PEER_SEED, otc_config.key().as_ref(), &params.dst_eid.to_be_bytes()],
+        bump = peer.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub peer: Option<Account<'info, Peer>>,
+
+    #[account(
+        seeds = [
+            EnforcedOptions::ENFORCED_OPTIONS_SEED,
+            otc_config.key().as_ref(),
+            &params.dst_eid.to_be_bytes(),
+        ],
+        bump = enforced_options.bump
+    )]
+    /// NOTICE: required for crosschain offer
+    pub enforced_options: Option<Account<'info, EnforcedOptions>>,
 
     pub token_program: Option<Interface<'info, TokenInterface>>,
 }
@@ -23,17 +40,21 @@ impl QuoteCreateOffer<'_> {
     pub fn apply(
         ctx: &mut Context<QuoteCreateOffer>,
         src_seller_address: &[u8; 32],
-        params: &CreateOfferParams
-    ) -> Result<CreateOfferReceipt> {
+        params: &CreateOfferParams,
+        pay_in_lz_token: bool
+    ) -> Result<(CreateOfferReceipt, MessagingFee)> {
         let src_token_address = OtcConfig::get_token_address(ctx.accounts.src_token_mint.as_ref());
-        let src_decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
-            ctx.accounts.src_token_mint.as_ref()
-        );
 
-        let (src_amount_sd, src_amount_ld) = OtcConfig::remove_dust(
-            params.src_amount_ld,
-            src_decimal_conversion_rate
-        );
+        let (src_amount_sd, src_amount_ld): (u64, u64);
+        {
+            let decimal_conversion_rate = OtcConfig::get_decimal_conversion_rate(
+                ctx.accounts.src_token_mint.as_ref()
+            );
+            (src_amount_sd, src_amount_ld) = OtcConfig::remove_dust(
+                params.src_amount_ld,
+                decimal_conversion_rate
+            );
+        }
 
         // validate pricing
         require!(src_amount_sd != 0 && params.exchange_rate_sd != 0, OtcError::InvalidPricing);
@@ -46,10 +67,53 @@ impl QuoteCreateOffer<'_> {
             &params.dst_token_address,
             params.exchange_rate_sd
         );
+        let messaging_fee: MessagingFee;
 
-        Ok(CreateOfferReceipt {
-            offer_id,
-            src_amount_ld,
-        })
+        if params.dst_eid != OtcConfig::EID {
+            // crosschain
+            let peer = ctx.accounts.peer.as_ref().expect(OtcConfig::ERROR_MSG);
+            let enforced_options = ctx.accounts.enforced_options
+                .as_ref()
+                .expect(OtcConfig::ERROR_MSG);
+
+            let payload = build_create_offer_payload(
+                &offer_id,
+                &(Offer {
+                    src_seller_address: *src_seller_address,
+                    dst_seller_address: params.dst_seller_address,
+                    src_eid: OtcConfig::EID,
+                    dst_eid: params.dst_eid,
+                    src_token_address,
+                    dst_token_address: params.dst_token_address,
+                    src_amount_sd,
+                    exchange_rate_sd: params.exchange_rate_sd,
+
+                    bump: u8::default(), // unused (required for Offer struct creation)
+                })
+            );
+            messaging_fee = oapp::endpoint_cpi::quote(
+                ctx.accounts.otc_config.endpoint_program,
+                ctx.remaining_accounts,
+                EndpointQuoteParams {
+                    sender: ctx.accounts.otc_config.key(),
+                    dst_eid: params.dst_eid,
+                    receiver: peer.address,
+                    message: payload,
+                    pay_in_lz_token,
+                    options: enforced_options.get_enforced_options(&None),
+                }
+            )?;
+        } else {
+            // monochain
+            messaging_fee = MessagingFee::default();
+        }
+
+        Ok((
+            CreateOfferReceipt {
+                offer_id,
+                src_amount_ld,
+            },
+            messaging_fee,
+        ))
     }
 }
