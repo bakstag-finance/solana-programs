@@ -225,6 +225,8 @@ export class Otc {
       COMMITMENT,
     );
 
+    console.log("offer created", { signature });
+
     return offer;
   }
 

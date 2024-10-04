@@ -33,6 +33,13 @@ describe("Cancel offer", () => {
 
     const offer = await OtcTools.createOffer(otc, seller, dstSeller);
 
+    await AccountTools.transferSol(
+      otc.connection,
+      otc.payer,
+      seller.publicKey,
+      1_000_000_000, // 1 sol
+    );
+
     accounts = {
       otcConfig: otc.deriver.config(),
       seller,
@@ -40,17 +47,46 @@ describe("Cancel offer", () => {
     };
   });
 
-  it("should cancel", async () => {
+  after(async () => {
+    await AccountTools.getRemainings(
+      connection,
+      [accounts.seller],
+      wallet.publicKey,
+    );
+  });
+
+  // it("should quote cancel", async () => {
+  //   const extraOptions = Options.newOptions()
+  //     //1728787755972227
+  //     .addExecutorLzReceiveOption(1 * 10 ** 6, 2_000_000)
+  //     .toBytes();
+
+  //   const parsed = await otc.quoteCancelOfferOrder(
+  //     accounts.offer[1],
+  //     Buffer.from(extraOptions),
+  //   );
+
+  //   console.log(parsed);
+  // });
+
+  it("should cancel offer", async () => {
     const extraOptions = Options.newOptions()
       //1728787755972227
-      .addExecutorLzReceiveOption(1 * 10 ** 6, 2_000_000)
+      .addExecutorLzReceiveOption(1 * 10 ** 8, 2_000_000_000_000_000)
       .toBytes();
 
-    const parsed = await otc.quoteCancelOfferOrder(
+    const fee = await otc.quoteCancelOfferOrder(
       accounts.offer[1],
       Buffer.from(extraOptions),
     );
 
-    console.log(parsed);
+    const signature = await otc.cancelOfferOrder(
+      accounts.offer[1],
+      Buffer.from(extraOptions),
+      accounts.seller,
+      fee,
+    );
+
+    console.log(signature);
   });
 });
